@@ -36,6 +36,43 @@ tracker starts empty and the admin uploads their own lists.
 Passwords, the admin setup key and the phone-app API key live in the
 project's Script Properties, never in these files.
 
+## Run it on Cloudflare instead of Google (`cloudflare/`)
+The same tracker can run on Cloudflare Workers with no Google account and no
+Google Sheet. `cloudflare/build.mjs` packs `apps-script/Code.gs` and `Index.html`
+unchanged into one Worker, with stand-ins for the Google services it uses. All
+data lives in a Durable Object with built-in SQLite storage (works on the
+Workers **Free** plan). Change the tracker in `apps-script/` and both versions
+get it.
+
+**One-time setup (about 10 minutes, all in the browser):**
+1. Cloudflare dashboard → **My Profile → API Tokens → Create Token** → use the
+   **"Edit Cloudflare Workers"** template → Create. Copy the token.
+2. Cloudflare dashboard → **Workers & Pages**: copy your **Account ID** (right side).
+3. GitHub repo → **Settings → Secrets and variables → Actions → New repository secret**, add:
+   - `CLOUDFLARE_API_TOKEN` – the token from step 1
+   - `CLOUDFLARE_ACCOUNT_ID` – the ID from step 2
+   - `ADMIN_SETUP_KEY` – any long secret (you type it when setting the Admin password)
+4. GitHub repo → **Actions → Deploy tracker to Cloudflare → Run workflow**.
+   It also runs by itself whenever `apps-script/` or `cloudflare/` changes.
+5. Open `https://cabin-tv-tracker.<your-subdomain>.workers.dev/setup`, enter the
+   setup key and set the **Admin** password.
+6. Open `https://cabin-tv-tracker.<your-subdomain>.workers.dev/`, sign in as Admin
+   and upload your cabins and public areas.
+
+**What is different from the Google version**
+- No spreadsheet: view and change data in the web app, export with **Export All
+  to Excel**, and load lists with **Upload Cabins & Public Areas**.
+- The Admin password is set at `/setup` (instead of the spreadsheet menu).
+- Backups are stored inside the Worker and download as .xlsx from the link the
+  backup shows.
+- Emails (daily summary, sign-in notices) need a free [Resend](https://resend.com)
+  account: add the Worker secrets `RESEND_API_KEY` and `MAIL_FROM`. Without them
+  the tracker works and simply sends no email.
+- Time zone: `TIMEZONE` in `cloudflare/wrangler.toml` (default `UTC`).
+- Phone app: set `WEB_APP_URL` in `App.js` to the workers.dev link.
+
+Test locally (Node 22): `cd cloudflare && npm test`.
+
 ### Open it on iPhone and Android
 The web app works in the phone's browser; no app store install is needed.
 Share your `/exec` link with the team, then:

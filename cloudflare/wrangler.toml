@@ -1,0 +1,34 @@
+# Cabin TV Tracker on Cloudflare Workers.
+# The worker is built from ../apps-script (Code.gs + Index.html) by build.mjs on every deploy.
+name = "cabin-tv-tracker"
+main = "dist/worker.js"
+compatibility_date = "2025-09-01"
+workers_dev = true
+
+[build]
+command = "node build.mjs"
+watch_dir = ["src", "../apps-script"]
+
+# All tracker data (cabins, public areas, history, settings, backups) lives in one Durable Object
+# with built-in SQLite storage. Works on the Workers Free plan.
+[[durable_objects.bindings]]
+name = "TRACKER"
+class_name = "TrackerStore"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["TrackerStore"]
+
+# Every minute: email queue, nightly backup + clean-up (23:00), daily summary email.
+[triggers]
+crons = ["* * * * *"]
+
+[vars]
+# Time zone for "Checked At", reports and the nightly jobs. Examples: "UTC", "Etc/GMT+2" (= UTC-2),
+# "America/New_York", "GMT+2" (= UTC+2). Change it as the ship moves if you like.
+TIMEZONE = "UTC"
+
+# Secrets (set with `npx wrangler secret put NAME`, or as GitHub secrets for the deploy workflow):
+#   ADMIN_SETUP_KEY  required – the key you type on /setup to set the Admin password
+#   RESEND_API_KEY   optional – turns on emails (daily summary, sign-in notices) through resend.com
+#   MAIL_FROM        optional – sender address for those emails, e.g. tracker@yourdomain.com

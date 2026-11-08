@@ -1,0 +1,38 @@
+name: Deploy tracker to Cloudflare
+
+on:
+  push:
+    branches: [main]
+    paths: ['apps-script/**', 'cloudflare/**', '.github/workflows/deploy-cloudflare.yml']
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check secrets
+        env:
+          T: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          A: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          K: ${{ secrets.ADMIN_SETUP_KEY }}
+        run: |
+          missing=""
+          [ -z "$T" ] && missing="$missing CLOUDFLARE_API_TOKEN"
+          [ -z "$A" ] && missing="$missing CLOUDFLARE_ACCOUNT_ID"
+          [ -z "$K" ] && missing="$missing ADMIN_SETUP_KEY"
+          if [ -n "$missing" ]; then echo "::error::Add these repository secrets (Settings > Secrets and variables > Actions):$missing"; exit 1; fi
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: cloudflare
+          wranglerVersion: "4"
+          secrets: |
+            ADMIN_SETUP_KEY
+        env:
+          ADMIN_SETUP_KEY: ${{ secrets.ADMIN_SETUP_KEY }}

@@ -1,0 +1,10 @@
+{
+  "name": "cabin-tv-tracker-cloudflare",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node build.mjs --test && node --experimental-sqlite --no-warnings test/e2e.mjs",
+    "deploy": "npx wrangler@4 deploy"
+  }
+}
