@@ -32,6 +32,21 @@ tracker starts empty and the admin uploads their own lists.
 Passwords, the admin setup key and the phone-app API key live in the
 project's Script Properties, never in these files.
 
+### Open it on iPhone and Android
+The web app works in the phone's browser; no app store install is needed.
+Share your `/exec` link with the team, then:
+- **iPhone:** open the link in **Safari** → Share button → **Add to Home Screen** → Add.
+- **Android:** open the link in **Chrome** → ⋮ menu → **Add to Home screen** (or **Install app**) → Add.
+
+Tips:
+- Set the deployment's **Who has access** to **Anyone**, so technicians sign in with their
+  tracker username and password and don't need a Google account.
+- After changing the code, use **Deploy → Manage deployments → Edit → New version**. The
+  `/exec` link stays the same, so home-screen icons keep working.
+- If an iPhone shows "page not found" (several Google accounts signed in), open the link
+  in a Private tab in Safari.
+- Phones need internet: the web app runs on Google's servers.
+
 Native Android + iOS app (Expo / React Native) that reads your
 PAX + Crew TV Installation Tracker through your Apps Script.
 
