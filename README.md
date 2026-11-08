@@ -69,7 +69,7 @@ get it.
   account: add the Worker secrets `RESEND_API_KEY` and `MAIL_FROM`. Without them
   the tracker works and simply sends no email.
 - Time zone: `TIMEZONE` in `cloudflare/wrangler.toml` (default `UTC`).
-- Phone app: set `WEB_APP_URL` in `App.js` to the workers.dev link.
+- Phone app: set `API_URL` in `App.js` to the workers.dev link (ending in `/`).
 
 Test locally (Node 22): `cd cloudflare && npm test`.
 
