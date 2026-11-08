@@ -138,9 +138,17 @@ function onOpen() {
     .addToUi();
 }
 
+/** Built-in copy of the password dialog, used when the project has no PasswordSetup.html file. */
+const PASSWORD_SETUP_HTML_ = "<!doctype html><html><head><base target=\"_top\"><meta charset=\"utf-8\"><style>body{font:14px Arial,sans-serif;padding:18px;background:#0b1025;color:#f8fafc}h2{margin:0 0 8px;color:#67e8f9}p{color:#cbd5e1;line-height:1.4}.field{display:block;margin:12px 0 5px;font-weight:bold;color:#c4b5fd}input,select{box-sizing:border-box;width:100%;padding:10px;border-radius:8px;border:1px solid #475569;background:#111827;color:white}button{margin-top:14px;padding:10px 14px;border:0;border-radius:8px;color:white;background:linear-gradient(100deg,#7c3aed,#db2777,#0891b2);font-weight:bold;cursor:pointer}#result{margin-top:12px;white-space:pre-wrap;line-height:1.4}.note{font-size:12px}</style></head><body><h2>Technician Password Setup</h2><p>Set or reset the password for one account. Passwords are stored as salted hashes, not plaintext.</p><label class=\"field\" for=\"adminKey\">Admin setup key</label><input id=\"adminKey\" type=\"password\" autocomplete=\"off\" placeholder=\"Enter TRACKER_ADMIN_SETUP_KEY\"><label class=\"field\" for=\"username\">Technician account</label><select id=\"username\">__OPTIONS__</select><label class=\"field\" for=\"password\">New password (minimum 12 characters)</label><input id=\"password\" type=\"password\" autocomplete=\"new-password\"><label class=\"field\" for=\"confirm\">Confirm password</label><input id=\"confirm\" type=\"password\" autocomplete=\"new-password\"><button id=\"save\" onclick=\"savePassword()\">Save Password</button><div id=\"result\" role=\"status\"></div><p class=\"note\">Keep the admin setup key private. Do not share it with technicians.</p><script>function savePassword(){const key=document.getElementById('adminKey').value,name=document.getElementById('username').value,p=document.getElementById('password').value,c=document.getElementById('confirm').value,out=document.getElementById('result'),b=document.getElementById('save');if(p.length<12){out.textContent='Password must be at least 12 characters.';return;}if(p!==c){out.textContent='Passwords do not match.';return;}b.disabled=true;out.textContent='Saving password…';google.script.run.withSuccessHandler(r=>{b.disabled=false;out.textContent=(r&&r.message)||'Saved.';document.getElementById('password').value='';document.getElementById('confirm').value='';}).withFailureHandler(e=>{b.disabled=false;out.textContent='Error: '+(e.message||e);}).saveTechnicianPasswordSetup(key,name,p);}</script></body></html>";
+
 function openTechnicianPasswordSetup() {
-  const html = HtmlService.createHtmlOutputFromFile('PasswordSetup').setWidth(440).setHeight(500);
-  SpreadsheetApp.getUi().showModalDialog(html, 'TV Tracker — Technician Password Setup');
+  let html;
+  try { html = HtmlService.createHtmlOutputFromFile('PasswordSetup'); }
+  catch (e) {
+    const opts = TECHNICIANS.map(n => '<option>' + htmlEsc_(n) + '</option>').join('');
+    html = HtmlService.createHtmlOutput(PASSWORD_SETUP_HTML_.replace('__OPTIONS__', opts));
+  }
+  SpreadsheetApp.getUi().showModalDialog(html.setWidth(440).setHeight(520), 'TV Tracker — Technician Password Setup');
 }
 
 // ---------------------------------------------------------------------------
