@@ -74,7 +74,7 @@ const HEADERS = ['CABIN TYPE','CABIN NO','DECK','FZ','TV installed','Power Conne
   .concat(TV2_FIELDS, TV3_FIELDS, PAX_EXTRA_TV_FIELDS);
 
 const TV_CHECK_ACCOUNTS = ['TV Check 1','TV Check 2','TV Check 3','TV Check 4','TV Check 5','TV Check 6'];
-const TECHNICIANS = ['Tech 1','Tech 2','Tech 3','Tech 4','Admin'].concat(TV_CHECK_ACCOUNTS);
+const TECHNICIANS = ['Admin'].concat(TV_CHECK_ACCOUNTS);   // Admin signs in with a password; TV Check 1–6 without
 const AUTHORIZED_TECHNICIANS = TECHNICIANS.slice();
 // Only these accounts need a password to sign in. Every other account signs in by choosing its name.
 const PASSWORD_ACCOUNTS = ['Admin'];
@@ -137,7 +137,7 @@ function onOpen() {
     .addItem('Send daily summary now', 'sendSummaryNowFromMenu')
     .addItem('Show phone app API key', 'showApiKeyFromMenu');
   if (typeof setKeyRunnerPasswordFromMenu === 'function') menu.addItem('Set key runner password', 'setKeyRunnerPasswordFromMenu');
-  menu.addItem('Create / reset TV Check passwords (TV Check 1–6)', 'createTvCheckPasswordsFromMenu')
+  menu
     .addToUi();
 }
 
@@ -148,7 +148,7 @@ function openTechnicianPasswordSetup() {
   let html;
   try { html = HtmlService.createHtmlOutputFromFile('PasswordSetup'); }
   catch (e) {
-    const opts = TECHNICIANS.map(n => '<option>' + htmlEsc_(n) + '</option>').join('');
+    const opts = PASSWORD_ACCOUNTS.map(n => '<option>' + htmlEsc_(n) + '</option>').join('');
     html = HtmlService.createHtmlOutput(PASSWORD_SETUP_HTML_.replace('__OPTIONS__', opts));
   }
   SpreadsheetApp.getUi().showModalDialog(html.setWidth(440).setHeight(520), 'TV Tracker — Technician Password Setup');
@@ -172,7 +172,7 @@ function inferType_(type, cabin) {
   return /^C\d/i.test(String(cabin == null ? '' : cabin).trim()) ? 'CREW' : 'PAX';
 }
 function cabinKey_(type, cabin) { return inferType_(type, cabin) + ':' + String(cabin == null ? '' : cabin).trim().toUpperCase(); }
-/** "tech 1 " typed in the sheet -> "Tech 1". Unknown names are kept as typed. */
+/** "tv check 1 " typed in the sheet -> "TV Check 1". Unknown names are kept as typed. */
 function techName_(v) { const s = String(v == null ? '' : v).trim(); return accountName_(s) || s; }
 
 /** Bumped on every change; the web app polls this cheap value and reloads only when it moves. */
@@ -196,7 +196,7 @@ function calculateCabinStatusFromFields_(readField, tvCount, type) {
   return allConfigured ? 'Fully Configured' : any ? 'In Progress' : 'Not Started';
 }
 
-function canManageAssignments_(username) { return ['Tech 3','Admin'].includes(accountName_(username)); }
+function canManageAssignments_(username) { return accountName_(username) === 'Admin'; }
 
 function sheet_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -573,7 +573,7 @@ function saveVenue(data) {
       const a = String(data.assignedTo || '').trim();
       if (a && !AUTHORIZED_TECHNICIANS.includes(a)) throw new Error('Choose a valid technician from the list.');
       if (a !== owner) {
-        if (!canManageAssignments_(auth.username)) return { success: false, forbidden: true, message: 'Only Tech 3 or Admin can change who a location is assigned to.' };
+        if (!canManageAssignments_(auth.username)) return { success: false, forbidden: true, message: 'Only Admin can change who a location is assigned to.' };
         changed.push({ field: 'Assigned To', value: a });
       }
     }
@@ -1386,7 +1386,7 @@ function saveTV(rowNumber, data) {
       const assigned = String(data.assignedTo || '').trim();
       if (assigned && !AUTHORIZED_TECHNICIANS.includes(assigned)) throw new Error('Choose a valid technician from the list.');
       if (assigned !== assignedOwner && !canManageAssignments_(auth.username)) {
-        return { success: false, forbidden: true, message: 'Only Tech 3 or Admin can change cabin technician assignments.' };
+        return { success: false, forbidden: true, message: 'Only Admin can change cabin technician assignments.' };
       }
       if (assigned !== assignedOwner) updatedRow[aCol] = assigned;
     }
@@ -1584,7 +1584,7 @@ function exportAssignmentTemplate(token) {
       ['3. Do not change CABIN TYPE or CABIN NO. You may delete rows you are not changing.'],
       ['4. Keep "Assignments" as the first sheet and save as .xlsx.'],
       ['5. Tracker > Technician Cabin Assignments > Upload Assignment Excel, then press "Save Assignments from Excel".'],
-      ['Example: PAX | 8100 | 8 | 1 | 1 | Not Started | Tech 1 | Install TV']]);
+      ['Example: PAX | 8100 | 8 | 1 | 1 | Not Started | TV Check 1 | Install TV']]);
     help.getRange(1, 1).setFontWeight('bold').setFontSize(14);
     help.setColumnWidth(1, 900);
     SpreadsheetApp.flush();
@@ -1751,7 +1751,7 @@ function batchUpdateChecklist(token, sessionId, items, labels, tvScope, tick) {
 }
 
 // ---------------------------------------------------------------------------
-// CHECKLIST LOCK (Admin) — when ON, Tech 1, Tech 2, Tech 3 and Tech 4 can tick new items but
+// CHECKLIST LOCK (Admin) — when ON, the TV Check accounts can tick new items but
 // cannot untick an item already saved as YES (cabins and public areas). Admin can change everything.
 // ---------------------------------------------------------------------------
 const CHECKLIST_LOCK_PROPERTY = 'TRACKER_LOCK_TICKED';

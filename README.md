@@ -16,11 +16,11 @@ tracker starts empty and the admin uploads their own lists.
 2. Run `setup()` once from the editor and allow the permissions.
 3. Project Settings → Script Properties: add `TRACKER_ADMIN_SETUP_KEY`
    (any long secret). Reload the sheet and use the **Tracker Admin →
-   Set / Reset Technician Passwords** menu to give each account a password.
-   Account names are in `TECHNICIANS` at the top of `Code.gs`; the admin
-   account is `Admin`.
-   Only `Admin` needs a password; technicians sign in by choosing their name
-   (change `PASSWORD_ACCOUNTS` in Code.gs and Index.html to require more).
+   Set / Reset Technician Passwords** menu to set the Admin password.
+   Accounts: `Admin` (signs in with this password) and `TV Check 1`–`TV Check 6`
+   (sign in by choosing their name, no password). Change `TECHNICIANS` /
+   `PASSWORD_ACCOUNTS` in Code.gs (and `TECHS` / `PASSWORD_ACCOUNTS` in Index.html)
+   to add accounts or require more passwords.
 4. Deploy → New deployment → Web app (Execute as: Me). Open the `/exec` link
    and sign in as the admin.
 5. Open **Upload Cabins & Public Areas**, download the templates, fill them

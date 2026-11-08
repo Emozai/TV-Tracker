@@ -413,7 +413,7 @@ td.wrapcell{white-space:normal;min-width:220px}
 <section class="userbar wrap">
   <div class="userpick">
     <label for="activeTech">Technician Account</label>
-    <select id="activeTech"><option value="">Select account</option><option>Tech 1</option><option>Tech 2</option><option>Tech 3</option><option>Tech 4</option><option>Admin</option><option>TV Check 1</option><option>TV Check 2</option><option>TV Check 3</option><option>TV Check 4</option><option>TV Check 5</option><option>TV Check 6</option></select>
+    <select id="activeTech"><option value="">Select account</option><option>Admin</option><option>TV Check 1</option><option>TV Check 2</option><option>TV Check 3</option><option>TV Check 4</option><option>TV Check 5</option><option>TV Check 6</option></select>
     <label for="editCode" id="editCodeLabel" style="margin-top:10px">Admin Password</label>
     <div class="passwordRow" id="passwordRow">
       <input id="editCode" type="password" autocomplete="current-password" placeholder="Enter your password">
@@ -425,7 +425,7 @@ td.wrapcell{white-space:normal;min-width:220px}
       <button id="logoutBtn" class="btn secondary" type="button" hidden>Logout</button>
     </div>
     <span id="modeBadge" class="modeBadge">READ-ONLY VIEW</span>
-    <span id="identityNote">Sign in to view and update your assigned cabins. Editors: Tech 1, Tech 2, Tech 3, Tech 4, Admin and TV Check 1–6.</span>
+    <span id="identityNote">Sign in to view and update your assigned cabins. Accounts: Admin (password) and TV Check 1–6 (no password).</span>
   </div>
   <div class="presence">
     <div class="presenceTitle"><span class="liveDot"></span> ACTIVE USERS <button id="refreshUsers" class="btn secondary" type="button">Refresh</button></div>
@@ -538,7 +538,7 @@ td.wrapcell{white-space:normal;min-width:220px}
       <div id="assignExcelStatus" class="muted" style="margin-top:6px"></div>
     </div>
     <div class="assignmentControls">
-      <label>Assign To Technician<select id="bulkAssignTech"><option value="">Choose technician</option><option>Tech 1</option><option>Tech 2</option><option>Tech 3</option><option>Tech 4</option><option>Admin</option><option>TV Check 1</option><option>TV Check 2</option><option>TV Check 3</option><option>TV Check 4</option><option>TV Check 5</option><option>TV Check 6</option><option value="__UNASSIGNED__">Unassigned</option></select></label>
+      <label>Assign To Technician<select id="bulkAssignTech"><option value="">Choose technician</option><option>Admin</option><option>TV Check 1</option><option>TV Check 2</option><option>TV Check 3</option><option>TV Check 4</option><option>TV Check 5</option><option>TV Check 6</option><option value="__UNASSIGNED__">Unassigned</option></select></label>
       <label>Find Cabins<input id="assignmentSearch" type="search" placeholder="Search cabin number"></label>
       <label>Cabin Type<select id="assignmentType"><option value="ALL">PAX + CREW</option><option value="PAX">PAX only</option><option value="CREW">CREW only</option></select></label>
       <label>Deck<select id="assignmentDeck"><option value="">All decks</option></select></label>
@@ -569,7 +569,7 @@ td.wrapcell{white-space:normal;min-width:220px}
       <label>Cabin Type<select id="type"><option value="ALL">Pax + Crew</option><option value="PAX">Passenger</option><option value="CREW">Crew</option></select></label>
       <label>Deck<select id="deck"><option value="">All Decks</option></select></label>
       <label>Status<select id="status"><option value="all">All statuses</option><option>Fully Configured</option><option>In Progress</option><option>Not Started</option></select></label>
-      <label>Assigned Technician<select id="assignedTech"><option value="">All technicians</option><option>Tech 1</option><option>Tech 2</option><option>Tech 3</option><option>Tech 4</option><option>Admin</option><option>TV Check 1</option><option>TV Check 2</option><option>TV Check 3</option><option>TV Check 4</option><option>TV Check 5</option><option>TV Check 6</option><option value="__UNASSIGNED__">Unassigned</option></select></label>
+      <label>Assigned Technician<select id="assignedTech"><option value="">All technicians</option><option>Admin</option><option>TV Check 1</option><option>TV Check 2</option><option>TV Check 3</option><option>TV Check 4</option><option>TV Check 5</option><option>TV Check 6</option><option value="__UNASSIGNED__">Unassigned</option></select></label>
       <label>Checklist Category<select id="checklistCategory"><option value="">All categories</option><option value="No TV Here">No TV Here</option><option value="Security to Open the Door">🔐 Security to Open the Door (PAX)</option><option value="TV installed">TV Installed</option><option value="Power Connected">Powering On</option><option value="Patch cable">Patch Cable (PAX) / LAN Connected (Crew)</option><option value="AP">AP (PAX TV 1)</option><option value="Fully Configured">Fully Configured</option><option value="Tested">Tested</option><option value="Held Up">Held Up</option><option value="__LOCKED__">🔒 Locked cabins</option></select></label>
       <label>Category Status<select id="checklistState"><option value="all">All</option><option value="pending">Needs checking / No</option><option value="done">Checked / Yes</option></select></label>
       <label id="excelUploadWrap" hidden>Upload Excel cabin list<input id="excelCabinFile" type="file" accept=".xlsx,.xls,.csv"></label>
@@ -662,7 +662,7 @@ const SECURITY_DOOR = 'Security to Open the Door'; // PAX only, one per cabin, d
 const PAX_CHECKS = ['No TV Here',SECURITY_DOOR,'TV installed','Power Connected','Patch cable','AP','Fully Configured','Tested','Held Up'];
 const CREW_CHECKS = ['No TV Here','TV installed','Power Connected','Patch cable','Fully Configured','Tested','Held Up']; // Patch cable shows as "LAN Connected" on crew cabins
 const PAX_EXTRA_TV_CHECKS = ['No TV Here','TV installed','Power Connected','Patch cable','Fully Configured','Tested','Held Up']; // TV 2/3: no AP, no Security
-const TECHS = ['Tech 1','Tech 2','Tech 3','Tech 4','Admin','TV Check 1','TV Check 2','TV Check 3','TV Check 4','TV Check 5','TV Check 6'];
+const TECHS = ['Admin','TV Check 1','TV Check 2','TV Check 3','TV Check 4','TV Check 5','TV Check 6'];
 const CREW_LINKED = ['TV installed','Power Connected','Patch cable']; // crew: TV Installed = Powering On = LAN Connected
 // ---------------------------------------------------------------- state
 let sessionId = '';
@@ -1401,7 +1401,7 @@ function updateAdminVisibility() {
   const allowed = isAdmin();
   $('technicianAssignmentPanel').hidden = !allowed;
   updateInventoryPanel();
-  // Export All to Excel: Admin only. Hidden for Tech 1, Tech 2, Tech 3, Tech 4 and signed-out users.
+  // Export All to Excel: Admin only. Hidden for the TV Check accounts and signed-out users.
   $('exportPanel').hidden = !allowed;
   updateLockUi();
   // Upload Excel cabin list + Batch Tick Checklist: Admin only.
@@ -2214,7 +2214,7 @@ function renderVenues(force) {
   $('vCount').textContent = 'Showing ' + list.length + ' of ' + venues.length + ' locations · ' + tv + ' TVs';
   updateVenueTabs();
 }
-function canAssignVenues() { return editorUnlocked && ['Admin','Tech 3'].includes(chosenTech()); }
+function canAssignVenues() { return editorUnlocked && chosenTech() === 'Admin'; }
 function venueCard(v) {
   const a = document.createElement('article');
   a.className = 'vcard ' + techClass(v.assignedTo) + (v.checks['Held Up'] ? ' held' : '');
