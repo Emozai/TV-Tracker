@@ -25,11 +25,11 @@
  * FIRST-TIME SETUP
  *   1. Create a Google Sheet, open Extensions › Apps Script, and add the files above.
  *   2. Run setup() once (creates the tracker sheet, turns on live sheet sync and the email / backup jobs).
- *   3. Script Properties: add NCL_TRACKER_ADMIN_SETUP_KEY (any long secret), then reload the sheet and use
- *      NCL Tracker Admin › "Set / Reset Technician Passwords" to give each account a password.
+ *   3. Script Properties: add TRACKER_ADMIN_SETUP_KEY (any long secret), then reload the sheet and use
+ *      Tracker Admin › "Set / Reset Technician Passwords" to give each account a password.
  *   4. Deploy › New deployment › Web app (Execute as: Me). Open the /exec link and sign in as the admin.
  *   5. Upload your cabins and public areas.
- *   Technician account names are set in TECHNICIANS below; the admin account is "Julius L".
+ *   Technician account names are set in TECHNICIANS below; the admin account is "Admin".
  *
  * LIVE SHEET SYNC
  *   - The "Combined Cabin TV Checklist" sheet is the source of truth. Add, delete,
@@ -74,14 +74,14 @@ const HEADERS = ['CABIN TYPE','CABIN NO','DECK','FZ','TV installed','Power Conne
   .concat(TV2_FIELDS, TV3_FIELDS, PAX_EXTRA_TV_FIELDS);
 
 const TV_CHECK_ACCOUNTS = ['TV Check 1','TV Check 2','TV Check 3','TV Check 4','TV Check 5','TV Check 6'];
-const TECHNICIANS = ['Julius T','Alana','Cesar','Roland','Julius L'].concat(TV_CHECK_ACCOUNTS);
+const TECHNICIANS = ['Tech 1','Tech 2','Tech 3','Tech 4','Admin'].concat(TV_CHECK_ACCOUNTS);
 const AUTHORIZED_TECHNICIANS = TECHNICIANS.slice();
 const AUTH_CACHE_TTL_SECONDS = 21600; // 6 hours
 const EMAIL_QUEUE_SHEET = 'Tracker Email Queue';
 const ACTIVE_USERS_SHEET = 'Tracker Active Users';
 const AUDIT_SHEET = 'Tracker Update History';
-const TRACKER_EMAIL_PROPERTY = 'NCL_TRACKER_NOTIFICATION_EMAIL';
-const DATA_VERSION_PROPERTY = 'NCL_TRACKER_DATA_VERSION';
+const TRACKER_EMAIL_PROPERTY = 'TRACKER_NOTIFICATION_EMAIL';
+const DATA_VERSION_PROPERTY = 'TRACKER_DATA_VERSION';
 
 /** Reads a TV Count cell: 2, "2", "2 TVs", "TV x2", "two" -> 2. Returns 0 when blank or unreadable. */
 function parseTvCount_(v) {
@@ -107,7 +107,7 @@ function doGet(e) {
   if (page === 'finalcheck' && typeof finalCheckPage_ === 'function') return finalCheckPage_(); // optional FinalCheck.gs
   if (e && e.parameter && e.parameter.api) return handleApi_(e);   // mobile app JSON API
   return HtmlService.createTemplateFromFile('Index').evaluate()
-    .setTitle('NCL ESCAPE | Combined Cabin TV Tracker')
+    .setTitle('Combined Cabin TV Tracker')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
@@ -120,7 +120,7 @@ function include(name) {
 
 function onOpen() {
   try { if (SpreadsheetApp.getActiveSpreadsheet().getSheetByName(VENUE_SHEET)) ensureVenueSheet_(); } catch (err) { console.warn('Venue check on open skipped: ' + err); }
-  const menu = SpreadsheetApp.getUi().createMenu('NCL Tracker Admin')
+  const menu = SpreadsheetApp.getUi().createMenu('Tracker Admin')
     .addItem('Set / Reset Technician Passwords', 'openTechnicianPasswordSetup')
     .addItem('Turn on live sheet sync (run once)', 'enableLiveSyncFromMenu')
     .addItem('Recalculate all statuses', 'recalcAllStatusesFromMenu')
@@ -140,7 +140,7 @@ function onOpen() {
 
 function openTechnicianPasswordSetup() {
   const html = HtmlService.createHtmlOutputFromFile('PasswordSetup').setWidth(440).setHeight(500);
-  SpreadsheetApp.getUi().showModalDialog(html, 'NCL Tracker — Technician Password Setup');
+  SpreadsheetApp.getUi().showModalDialog(html, 'TV Tracker — Technician Password Setup');
 }
 
 // ---------------------------------------------------------------------------
@@ -161,7 +161,7 @@ function inferType_(type, cabin) {
   return /^C\d/i.test(String(cabin == null ? '' : cabin).trim()) ? 'CREW' : 'PAX';
 }
 function cabinKey_(type, cabin) { return inferType_(type, cabin) + ':' + String(cabin == null ? '' : cabin).trim().toUpperCase(); }
-/** "julius t " typed in the sheet -> "Julius T". Unknown names are kept as typed. */
+/** "tech 1 " typed in the sheet -> "Tech 1". Unknown names are kept as typed. */
 function techName_(v) { const s = String(v == null ? '' : v).trim(); return accountName_(s) || s; }
 
 /** Bumped on every change; the web app polls this cheap value and reloads only when it moves. */
@@ -185,7 +185,7 @@ function calculateCabinStatusFromFields_(readField, tvCount, type) {
   return allConfigured ? 'Fully Configured' : any ? 'In Progress' : 'Not Started';
 }
 
-function canManageAssignments_(username) { return ['Cesar','Julius L'].includes(accountName_(username)); }
+function canManageAssignments_(username) { return ['Tech 3','Admin'].includes(accountName_(username)); }
 
 function sheet_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -215,7 +215,7 @@ function ensureTrackerColumns_(sh) {
 
   // The blank TV Count / No TV Here fill below reads the whole sheet, so it runs at most once every
   // 5 minutes (or straight away when a column was just added). Blank cells are handled in getData_ anyway.
-  const cache = CacheService.getScriptCache(), fillKey = 'NCL_TRACKER_BLANK_FILL_DONE';
+  const cache = CacheService.getScriptCache(), fillKey = 'TRACKER_BLANK_FILL_DONE';
   if (!added && cache.get(fillKey)) return;
   try { cache.put(fillKey, '1', 300); } catch (_) {}
 
@@ -293,7 +293,7 @@ function recalcStatusRows_(sh, startRow, numRows) {
 // On crew cabins these three checks are always the same, for TV 1, TV 2 and TV 3.
 // ---------------------------------------------------------------------------
 const CREW_LINKED_LABELS = ['TV installed','Power Connected','Patch cable']; // Patch cable = "LAN Connected" on crew
-const CREW_LAN_SYNC_PROPERTY = 'NCL_TRACKER_CREW_LAN_SYNC_20261019';
+const CREW_LAN_SYNC_PROPERTY = 'TRACKER_CREW_LAN_SYNC_20261019';
 
 function crewLinkedFields_(n) { return CREW_LINKED_LABELS.map(l => tvFieldName_(n, l)); }
 
@@ -535,8 +535,8 @@ function saveVenue(data) {
     if (!rn) return { success: false, notFound: true, message: 'This TV location (' + id + ') is no longer in the Public Area TVs sheet. Refresh to load the current list.' };
     const row = sh.getRange(rn, 1, 1, sh.getLastColumn()).getValues()[0];
     const owner = techName_(row[col('Assigned To')]);
-    if (owner && auth.username !== 'Julius L' && owner !== auth.username) {
-      return { success: false, forbidden: true, message: 'This location is assigned to ' + owner + '. Only ' + owner + ' or Julius L can update it.' };
+    if (owner && auth.username !== 'Admin' && owner !== auth.username) {
+      return { success: false, forbidden: true, message: 'This location is assigned to ' + owner + '. Only ' + owner + ' or Admin can update it.' };
     }
     const checks = data.checks || {}, base = data.baseChecks || {}, changed = [], conflicts = [];
     VENUE_CHECKS.forEach(k => {
@@ -552,17 +552,17 @@ function saveVenue(data) {
       const b = Object.prototype.hasOwnProperty.call(data, 'baseRemarks') ? String(data.baseRemarks == null ? '' : data.baseRemarks) : cur;
       if (sub !== b) { if (cur !== b && cur !== sub) conflicts.push('Remarks'); else if (cur !== sub) changed.push({ field: 'Remarks', value: sub }); }
     }
-    if ((isChecklistLocked_() || normalizeYesNo_(col('Locked') === undefined ? '' : row[col('Locked')]) === 'Yes') && auth.username !== 'Julius L') {
+    if ((isChecklistLocked_() || normalizeYesNo_(col('Locked') === undefined ? '' : row[col('Locked')]) === 'Yes') && auth.username !== 'Admin') {
       const blocked = changed.filter(x => VENUE_CHECKS.includes(x.field) && x.value === 'No' && normalizeYesNo_(row[col(x.field)]) === 'Yes').map(x => x.field);
       if (blocked.length) return { success: false, locked: true, id,
-        message: 'Julius L has locked ticked items. You cannot untick: ' + blocked.join(', ') + '. Nothing was saved.' };
+        message: 'Admin has locked ticked items. You cannot untick: ' + blocked.join(', ') + '. Nothing was saved.' };
     }
     if (conflicts.length) return { success: false, conflict: true, message: 'Someone changed ' + conflicts.join(', ') + ' for ' + row[col('VENUE')] + '. Refresh and check the latest values before saving.' };
     if (Object.prototype.hasOwnProperty.call(data, 'assignedTo')) {
       const a = String(data.assignedTo || '').trim();
       if (a && !AUTHORIZED_TECHNICIANS.includes(a)) throw new Error('Choose a valid technician from the list.');
       if (a !== owner) {
-        if (!canManageAssignments_(auth.username)) return { success: false, forbidden: true, message: 'Only Cesar or Julius L can change who a location is assigned to.' };
+        if (!canManageAssignments_(auth.username)) return { success: false, forbidden: true, message: 'Only Tech 3 or Admin can change who a location is assigned to.' };
         changed.push({ field: 'Assigned To', value: a });
       }
     }
@@ -897,7 +897,7 @@ function getData_() {
       checkBy: String(cell(r, 'Check By')), assignedTo: techName_(cell(r, 'Assigned To')),
       status: '', checkedAt: formatDate_(cell(r, 'Checked At')), comments: String(cell(r, 'Comments')),
       whatToCheck: String(cell(r, 'What to Check')),
-      locked: normalizeYesNo_(cell(r, 'Locked')) === 'Yes'   // set by Julius L (per-cabin lock)
+      locked: normalizeYesNo_(cell(r, 'Locked')) === 'Yes'   // set by Admin (per-cabin lock)
     };
     ALL_TV_FIELDS.concat(COMMON_CHECK_FIELDS, CABIN_EXTRA_FIELDS).forEach(f => {
       const idx = col(f);
@@ -910,12 +910,12 @@ function getData_() {
   }).filter(Boolean);
 }
 
-/** Authenticated cabin list: Julius L sees all, others only their assigned cabins. */
+/** Authenticated cabin list: Admin sees all, others only their assigned cabins. */
 function getData(token) {
   const auth = authenticateToken_(token);
   if (!auth) return [];
   const all = getData_();
-  return auth.username === 'Julius L' ? all : all.filter(c => c.assignedTo === auth.username);
+  return auth.username === 'Admin' ? all : all.filter(c => c.assignedTo === auth.username);
 }
 
 // ---------------------------------------------------------------------------
@@ -954,7 +954,7 @@ function testTrackerEmailNotification() {
   } catch (err) {
     return 'Test email not sent because the quota could not be checked: ' + String(err && err.message ? err.message : err);
   }
-  const result = sendTrackerEmail_('TEST', { technician: 'Tracker administrator', details: 'This is a test notification from the NCL ESCAPE Cabin TV Installation Tracker.', timestamp: formatDate_(new Date()) });
+  const result = sendTrackerEmail_('TEST', { technician: 'Tracker administrator', details: 'This is a test notification from the Cabin TV Installation Tracker.', timestamp: formatDate_(new Date()) });
   return result.sent ? 'Test email sent to ' + email + '.' : 'Test email not sent: ' + result.reason;
 }
 
@@ -965,16 +965,16 @@ function sendTrackerEmail_(eventName, info) {
     const props = PropertiesService.getScriptProperties();
     const recipient = props.getProperty(TRACKER_EMAIL_PROPERTY);
     if (!recipient) return { sent: false, reason: 'No notification recipient configured.' };
-    if (props.getProperty('NCL_TRACKER_EMAIL_QUOTA_EXHAUSTED_DAY') === trackerEmailQuotaDay_()) {
+    if (props.getProperty('TRACKER_EMAIL_QUOTA_EXHAUSTED_DAY') === trackerEmailQuotaDay_()) {
       return { sent: false, reason: 'Daily email quota already exhausted; retry after the quota resets.' };
     }
     if (MailApp.getRemainingDailyQuota() <= 0) {
-      props.setProperty('NCL_TRACKER_EMAIL_QUOTA_EXHAUSTED_DAY', trackerEmailQuotaDay_());
+      props.setProperty('TRACKER_EMAIL_QUOTA_EXHAUSTED_DAY', trackerEmailQuotaDay_());
       return { sent: false, reason: 'Google Apps Script daily email quota is exhausted.' };
     }
     const d = info || {};
     const lines = [
-      'NCL ESCAPE — Cabin TV Installation Tracker', '',
+      'Cabin TV Installation Tracker', '',
       'Event: ' + String(eventName || 'Activity'),
       'Technician: ' + String(d.technician || 'Unknown'),
       d.cabin ? 'Cabin: ' + String(d.cabinType || '') + ' ' + String(d.cabin) : '',
@@ -983,12 +983,12 @@ function sendTrackerEmail_(eventName, info) {
       'Time: ' + (d.timestamp || formatDate_(new Date())), '',
       'This is an automated notification from the tracker.'
     ].filter(Boolean);
-    MailApp.sendEmail({ to: recipient, subject: '[NCL ESCAPE Tracker] ' + String(eventName || 'Activity'), body: lines.join('\n'), name: 'NCL ESCAPE Cabin TV Tracker' });
+    MailApp.sendEmail({ to: recipient, subject: '[TV Tracker] ' + String(eventName || 'Activity'), body: lines.join('\n'), name: 'Cabin TV Tracker' });
     return { sent: true };
   } catch (err) {
     const message = String(err && err.message ? err.message : err);
     if (/too many times for one day|daily.*quota|quota.*exhaust/i.test(message)) {
-      PropertiesService.getScriptProperties().setProperty('NCL_TRACKER_EMAIL_QUOTA_EXHAUSTED_DAY', trackerEmailQuotaDay_());
+      PropertiesService.getScriptProperties().setProperty('TRACKER_EMAIL_QUOTA_EXHAUSTED_DAY', trackerEmailQuotaDay_());
     }
     console.error('Tracker notification email failed: ' + message);
     return { sent: false, reason: message };
@@ -1048,7 +1048,7 @@ function accountName_(username) {
 }
 function accountKey_(username) {
   const name = accountName_(username);
-  return name ? name.toUpperCase().replace(/\s+/g, '_') : ''; // JULIUS_T, ALANA, … TV_CHECK_1
+  return name ? name.toUpperCase().replace(/\s+/g, '_') : ''; // TECH_1, ADMIN, … TV_CHECK_1
 }
 function constantTimeEqual_(a, b) {
   a = String(a || ''); b = String(b || '');
@@ -1072,27 +1072,27 @@ function passwordHashFast_(password, salt) {
 /** Saves the quick hash, tied to the current main hash: if the password is reset, the quick hash no longer matches and is ignored. */
 function storeFastHash_(key, password, mainHash) {
   const salt = Utilities.getUuid();
-  PropertiesService.getScriptProperties().setProperty('NCL_USER_' + key + '_FAST',
+  PropertiesService.getScriptProperties().setProperty('TRACKER_USER_' + key + '_FAST',
     JSON.stringify({ of: String(mainHash).slice(-16), salt: salt, hash: passwordHashFast_(password, salt) }));
 }
 function readFastHash_(key, mainHash) {
   try {
-    const f = JSON.parse(PropertiesService.getScriptProperties().getProperty('NCL_USER_' + key + '_FAST') || 'null');
+    const f = JSON.parse(PropertiesService.getScriptProperties().getProperty('TRACKER_USER_' + key + '_FAST') || 'null');
     return f && f.salt && f.hash && f.of === String(mainHash).slice(-16) ? f : null;
   } catch (_) { return null; }
 }
 
 function saveTechnicianPasswordSetup(adminKey, username, password) {
   const props = PropertiesService.getScriptProperties();
-  const expected = props.getProperty('NCL_TRACKER_ADMIN_SETUP_KEY');
-  if (!expected) throw new Error('Admin setup key is not configured in Script Properties. Add NCL_TRACKER_ADMIN_SETUP_KEY first.');
+  const expected = props.getProperty('TRACKER_ADMIN_SETUP_KEY');
+  if (!expected) throw new Error('Admin setup key is not configured in Script Properties. Add TRACKER_ADMIN_SETUP_KEY first.');
   if (!constantTimeEqual_(String(adminKey || ''), expected)) throw new Error('Incorrect admin setup key.');
   const name = accountName_(username), key = accountKey_(username), pw = String(password || '');
   if (!name || !key) throw new Error('Only these accounts can have editor passwords: ' + TECHNICIANS.join(', ') + '.');
   if (pw.length < 12) throw new Error('Password must be at least 12 characters.');
   const salt = Utilities.getUuid() + '-' + Utilities.getUuid();
   const mainHash = passwordHash_(pw, salt);
-  props.setProperties({ ['NCL_USER_' + key + '_SALT']: salt, ['NCL_USER_' + key + '_HASH']: mainHash });
+  props.setProperties({ ['TRACKER_USER_' + key + '_SALT']: salt, ['TRACKER_USER_' + key + '_HASH']: mainHash });
   storeFastHash_(key, pw, mainHash);
   return { success: true, message: 'Password saved for ' + name + '. The password is stored as a salted hash.' };
 }
@@ -1109,7 +1109,7 @@ function randomPassword_(prefix) {
 /** Menu: creates passwords for TV Check accounts and shows them once. Only salted hashes are stored. */
 function createTvCheckPasswordsFromMenu() {
   const ui = SpreadsheetApp.getUi(), props = PropertiesService.getScriptProperties();
-  const hasPw = n => !!props.getProperty('NCL_USER_' + accountKey_(n) + '_HASH');
+  const hasPw = n => !!props.getProperty('TRACKER_USER_' + accountKey_(n) + '_HASH');
   const without = TV_CHECK_ACCOUNTS.filter(n => !hasPw(n));
   const r = ui.prompt('TV Check passwords',
     'Which accounts? Type the numbers, e.g.  1-6  or  2,4,5,6  or  4  or  ALL\n' +
@@ -1133,11 +1133,11 @@ function createTvCheckPasswordsFromMenu() {
     const pw = randomPassword_('TVC' + name.replace(/\D/g, ''));
     const salt = Utilities.getUuid() + '-' + Utilities.getUuid(), key = accountKey_(name);
     const mainHash = passwordHash_(pw, salt);
-    props.setProperties({ ['NCL_USER_' + key + '_SALT']: salt, ['NCL_USER_' + key + '_HASH']: mainHash });
+    props.setProperties({ ['TRACKER_USER_' + key + '_SALT']: salt, ['TRACKER_USER_' + key + '_HASH']: mainHash });
     storeFastHash_(key, pw, mainHash);
     return name + ':   ' + pw;
   });
-  try { appendAudit_(new Date(), 'Julius L (spreadsheet)', 'SESSION', '', 'Passwords set for ' + list.join(', '), 'Settings', ''); } catch (_) {}
+  try { appendAudit_(new Date(), 'Admin (spreadsheet)', 'SESSION', '', 'Passwords set for ' + list.join(', '), 'Settings', ''); } catch (_) {}
   ui.alert('TV Check passwords — write these down NOW',
     lines.join('\n') + '\n\nThey are not stored and cannot be shown again (only a secure hash is kept). ' +
     'To change one later, run this menu again with its number.', ui.ButtonSet.OK);
@@ -1145,7 +1145,7 @@ function createTvCheckPasswordsFromMenu() {
 
 function authCache_() { return CacheService.getScriptCache(); }
 function authCacheKey_(token) {
-  return 'NCL_AUTH_' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(token || ''))).slice(0, 40);
+  return 'TRACKER_AUTH_' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(token || ''))).slice(0, 40);
 }
 
 /** Sessions live in Script Properties (CacheService may evict early). Sliding 6-hour inactivity timeout. */
@@ -1174,10 +1174,10 @@ function loginTechnician(username, password, sessionId) {
   const name = accountName_(username), key = accountKey_(username), pw = String(password || ''), sid = String(sessionId || '').trim();
   if (!name || !key) return { success: false, message: 'Choose an editor account: ' + TECHNICIANS.join(', ') + '.' };
   if (!sid) return { success: false, message: 'Browser session is missing. Reload the tracker and try again.' };
-  const cache = authCache_(), failKey = 'NCL_LOGIN_FAIL_' + key, failed = Number(cache.get(failKey) || 0);
+  const cache = authCache_(), failKey = 'TRACKER_LOGIN_FAIL_' + key, failed = Number(cache.get(failKey) || 0);
   if (failed >= 5) return { success: false, message: 'Too many unsuccessful attempts. Wait 15 minutes before trying again.' };
   const props = PropertiesService.getScriptProperties();
-  const salt = props.getProperty('NCL_USER_' + key + '_SALT'), expected = props.getProperty('NCL_USER_' + key + '_HASH');
+  const salt = props.getProperty('TRACKER_USER_' + key + '_SALT'), expected = props.getProperty('TRACKER_USER_' + key + '_HASH');
   if (!salt || !expected) return { success: false, message: 'Password has not been configured for ' + name + '. Ask the tracker administrator to set it.' };
   const fast = readFastHash_(key, expected);
   const ok = fast ? constantTimeEqual_(passwordHashFast_(pw, fast.salt), fast.hash)
@@ -1274,7 +1274,7 @@ function saveTV(rowNumber, data) {
     if (!cabin) throw new Error('Cabin record was not found. Refresh and try again.');
 
     const assignedOwner = techName_(row[col('Assigned To')]);
-    if (auth.username !== 'Julius L' && assignedOwner !== auth.username) {
+    if (auth.username !== 'Admin' && assignedOwner !== auth.username) {
       return { success: false, forbidden: true, message: 'You can only view and update cabins assigned to your account.' };
     }
 
@@ -1343,13 +1343,13 @@ function saveTV(rowNumber, data) {
       }
     }
 
-    // Checklist lock (set by Julius L): other technicians cannot untick an item already saved as YES.
-    if ((isChecklistLocked_() || normalizeYesNo_(col('Locked') === undefined ? '' : row[col('Locked')]) === 'Yes') && auth.username !== 'Julius L') {
+    // Checklist lock (set by Admin): other technicians cannot untick an item already saved as YES.
+    if ((isChecklistLocked_() || normalizeYesNo_(col('Locked') === undefined ? '' : row[col('Locked')]) === 'Yes') && auth.username !== 'Admin') {
       const checklist = {};
       ALL_TV_FIELDS.concat(CABIN_EXTRA_FIELDS).forEach(f => checklist[normalize_(f)] = true);
       const blocked = changed.filter(x => checklist[normalize_(x.field)] && x.value === 'No' && normalizeYesNo_(row[col(x.field)]) === 'Yes').map(x => x.field);
       if (blocked.length) return { success: false, locked: true, cabin, cabinType: type,
-        message: 'Julius L has locked ticked items. You cannot untick: ' + blocked.join(', ') + '. Nothing was saved — tick it again or ask Julius L.' };
+        message: 'Admin has locked ticked items. You cannot untick: ' + blocked.join(', ') + '. Nothing was saved — tick it again or ask Admin.' };
     }
 
     if (conflicts.length) {
@@ -1370,7 +1370,7 @@ function saveTV(rowNumber, data) {
       const assigned = String(data.assignedTo || '').trim();
       if (assigned && !AUTHORIZED_TECHNICIANS.includes(assigned)) throw new Error('Choose a valid technician from the list.');
       if (assigned !== assignedOwner && !canManageAssignments_(auth.username)) {
-        return { success: false, forbidden: true, message: 'Only Cesar or Julius L can change cabin technician assignments.' };
+        return { success: false, forbidden: true, message: 'Only Tech 3 or Admin can change cabin technician assignments.' };
       }
       if (assigned !== assignedOwner) updatedRow[aCol] = assigned;
     }
@@ -1409,14 +1409,14 @@ function saveTV(rowNumber, data) {
 }
 
 /**
- * Bulk-assign cabins to one technician (Julius L only).
+ * Bulk-assign cabins to one technician (Admin only).
  * `items` may be [{rowNumber, cabin, cabinType}, …] (preferred — safe if rows moved) or plain row numbers.
  */
 function assignCabinsToTechnician(token, sessionId, items, technician) {
   const auth = authenticateToken_(token);
   if (!auth) return { success: false, unauthorized: true, message: 'Your editing session expired. Please sign in again.' };
   if (String(sessionId || '').trim() !== String(auth.sessionId || '')) return { success: false, unauthorized: true, message: 'This browser session does not match your sign-in. Please sign in again.' };
-  if (auth.username !== 'Julius L') return { success: false, forbidden: true, message: 'Only Julius L can manage bulk cabin assignments.' };
+  if (auth.username !== 'Admin') return { success: false, forbidden: true, message: 'Only Admin can manage bulk cabin assignments.' };
   const target = String(technician || '').trim();
   if (target && !AUTHORIZED_TECHNICIANS.includes(target)) return { success: false, message: 'Choose a valid technician.' };
   if (!Array.isArray(items) || !items.length) return { success: false, message: 'Select one or more cabins.' };
@@ -1459,13 +1459,13 @@ function assignCabinsToTechnician(token, sessionId, items, technician) {
 
 /**
  * EXCEL ASSIGNMENT — assigns each cabin to the technician named in the uploaded Excel / CSV list.
- * `items` = [{ cabin, cabinType, technician }, …]   technician '' = unassign. Julius L only.
+ * `items` = [{ cabin, cabinType, technician }, …]   technician '' = unassign. Admin only.
  */
 function importUploadedAssignments(token, sessionId, items) {
   const auth = authenticateToken_(token);
   if (!auth) return { success: false, unauthorized: true, message: 'Your editing session expired. Please sign in again.' };
   if (String(sessionId || '').trim() !== String(auth.sessionId || '')) return { success: false, unauthorized: true, message: 'This browser session does not match your sign-in. Please sign in again.' };
-  if (auth.username !== 'Julius L') return { success: false, forbidden: true, message: 'Only Julius L can save cabin assignments from an Excel list.' };
+  if (auth.username !== 'Admin') return { success: false, forbidden: true, message: 'Only Admin can save cabin assignments from an Excel list.' };
   if (!Array.isArray(items) || !items.length) return { success: false, message: 'No assignments to save.' };
   if (items.length > 5000) return { success: false, message: 'Too many rows in one upload (maximum 5000).' };
 
@@ -1532,17 +1532,17 @@ const WHAT_TO_CHECK_OPTIONS = ['Full install: TV, power, patch cable/LAN, AP, co
   'Test TV and channels', 'Recheck held-up issue', 'Verify no TV in cabin', 'Replace damaged TV', 'Final inspection',
   'Security to open the door (PAX)'];
 
-/** Builds the technician assignment Excel from the LIVE sheet (Julius L only). Upload it back in the same panel. */
+/** Builds the technician assignment Excel from the LIVE sheet (Admin only). Upload it back in the same panel. */
 function exportAssignmentTemplate(token) {
   const auth = authenticateToken_(token);
-  if (!auth || auth.username !== 'Julius L') throw new Error('Only Julius L can download the assignment Excel.');
+  if (!auth || auth.username !== 'Admin') throw new Error('Only Admin can download the assignment Excel.');
   const records = getData_();
   const fields = ['CABIN TYPE','CABIN NO','DECK','FZ','TV Count','Status','Assigned To','What to Check'];
   const rows = records.map(c => [c.cabinType || '', String(c.cabin || ''), c.deck || '', c.fz || '', c.tvCount || 1,
     c.status || '', c.assignedTo || '', c.whatToCheck || '']);
   let tempId = '';
   try {
-    const wb = SpreadsheetApp.create('NCL Escape Technician Assignment');
+    const wb = SpreadsheetApp.create('Technician Assignment');
     tempId = wb.getId();
     const sh = wb.getSheets()[0];
     sh.setName('Assignments');
@@ -1562,13 +1562,13 @@ function exportAssignmentTemplate(token) {
     sh.setColumnWidths(1, 6, 90); sh.setColumnWidth(7, 120); sh.setColumnWidth(8, 380);
     const help = wb.insertSheet('How to use');
     help.getRange(1, 1, 7, 1).setValues([
-      ['Technician Cabin Assignment — NCL Escape'],
+      ['Technician Cabin Assignment'],
       ['1. Fill in the yellow columns on the Assignments sheet: Assigned To (drop-down) and What to Check (drop-down or type your own).'],
       ['2. Leave Assigned To blank to keep the current technician; choose "Unassigned" to clear it. Clearing What to Check clears it on the cabin.'],
       ['3. Do not change CABIN TYPE or CABIN NO. You may delete rows you are not changing.'],
       ['4. Keep "Assignments" as the first sheet and save as .xlsx.'],
       ['5. Tracker > Technician Cabin Assignments > Upload Assignment Excel, then press "Save Assignments from Excel".'],
-      ['Example: PAX | 8100 | 8 | 1 | 1 | Not Started | Julius T | Install TV']]);
+      ['Example: PAX | 8100 | 8 | 1 | 1 | Not Started | Tech 1 | Install TV']]);
     help.getRange(1, 1).setFontWeight('bold').setFontSize(14);
     help.setColumnWidth(1, 900);
     SpreadsheetApp.flush();
@@ -1576,7 +1576,7 @@ function exportAssignmentTemplate(token) {
       method: 'get', headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true
     });
     if (resp.getResponseCode() !== 200) throw new Error('Google Sheets XLSX export failed (HTTP ' + resp.getResponseCode() + ').');
-    const filename = 'NCL_Escape_Technician_Assignment_' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd_HHmm') + '.xlsx';
+    const filename = 'TV_Tracker_Technician_Assignment_' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd_HHmm') + '.xlsx';
     return { success: true, filename, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       base64: Utilities.base64Encode(resp.getBlob().getBytes()), recordCount: rows.length };
   } finally {
@@ -1587,14 +1587,14 @@ function exportAssignmentTemplate(token) {
 /**
  * Adds remarks from an uploaded Excel / CSV cabin list to the Comments (Remarks) column.
  * Existing remarks are kept: the uploaded text is added on a new line, and skipped if the cabin
- * already contains exactly that text. Julius L can update any cabin; others only their assigned cabins.
+ * already contains exactly that text. Admin can update any cabin; others only their assigned cabins.
  * `items` = [{ cabin, cabinType, remark }, …]
  */
 function importUploadedRemarks(token, sessionId, items) {
   const auth = authenticateToken_(token);
   if (!auth) return { success: false, unauthorized: true, message: 'Your editing session expired. Please sign in again.' };
   if (String(sessionId || '').trim() !== String(auth.sessionId || '')) return { success: false, unauthorized: true, message: 'This browser session does not match your sign-in. Please sign in again.' };
-  if (auth.username !== 'Julius L') return { success: false, forbidden: true, message: 'Only Julius L can save remarks from an uploaded Excel cabin list.' };
+  if (auth.username !== 'Admin') return { success: false, forbidden: true, message: 'Only Admin can save remarks from an uploaded Excel cabin list.' };
   if (!Array.isArray(items) || !items.length) return { success: false, message: 'No uploaded remarks to save.' };
   if (items.length > 5000) return { success: false, message: 'Too many rows in one upload (maximum 5000).' };
 
@@ -1618,7 +1618,7 @@ function importUploadedRemarks(token, sessionId, items) {
       const rn = keyToRow[cabinKey_(it.cabinType, it.cabin)];
       if (!rn) { missing++; return; }
       const row = all[rn - 2];
-      if (auth.username !== 'Julius L' && techName_(row[aCol]) !== auth.username) { forbidden++; return; }
+      if (auth.username !== 'Admin' && techName_(row[aCol]) !== auth.username) { forbidden++; return; }
       const current = String(row[cCol] == null ? '' : row[cCol]).trim();
       if (current.indexOf(remark) !== -1) { unchanged++; return; }
       const next = (current ? current + '\n' + remark : remark).slice(0, 2000);
@@ -1647,7 +1647,7 @@ function importUploadedRemarks(token, sessionId, items) {
 }
 
 /**
- * BATCH TICK (Julius L only) — ticks (or unticks) the chosen checklist items on many cabins at once,
+ * BATCH TICK (Admin only) — ticks (or unticks) the chosen checklist items on many cabins at once,
  * e.g. every cabin from an uploaded Excel / CSV list.
  *   items   = [{ cabin, cabinType }, …]
  *   labels  = checklist items, e.g. ['TV installed','Power Connected']
@@ -1660,7 +1660,7 @@ function batchUpdateChecklist(token, sessionId, items, labels, tvScope, tick) {
   const auth = authenticateToken_(token);
   if (!auth) return { success: false, unauthorized: true, message: 'Your editing session expired. Please sign in again.' };
   if (String(sessionId || '').trim() !== String(auth.sessionId || '')) return { success: false, unauthorized: true, message: 'This browser session does not match your sign-in. Please sign in again.' };
-  if (auth.username !== 'Julius L') return { success: false, forbidden: true, message: 'Only Julius L can use Batch Tick Checklist.' };
+  if (auth.username !== 'Admin') return { success: false, forbidden: true, message: 'Only Admin can use Batch Tick Checklist.' };
   const allowed = ['No TV Here','TV installed','Power Connected','Patch cable','AP',SECURITY_DOOR,'Fully Configured','Tested','Held Up'];
   labels = Array.isArray(labels) ? labels.filter(l => allowed.includes(l)) : [];
   if (!labels.length) return { success: false, message: 'Choose at least one checklist item to tick.' };
@@ -1691,7 +1691,7 @@ function batchUpdateChecklist(token, sessionId, items, labels, tvScope, tick) {
       const rn = keyToRow[key];
       if (!rn) { missing++; return; }
       const row = all[rn - 2];
-      if (auth.username !== 'Julius L' && techName_(row[aCol]) !== auth.username) { forbidden++; return; }
+      if (auth.username !== 'Admin' && techName_(row[aCol]) !== auth.username) { forbidden++; return; }
       const cabin = String(row[ci]).trim(), type = inferType_(row[ti], cabin), pax = type === 'PAX';
       const tvCount = parseTvCount_(row[tcCol]) || getTvCount_(type, cabin);
       const n = allTvs ? tvCount : 1, values = {}, changes = [];
@@ -1735,17 +1735,17 @@ function batchUpdateChecklist(token, sessionId, items, labels, tvScope, tick) {
 }
 
 // ---------------------------------------------------------------------------
-// CHECKLIST LOCK (Julius L) — when ON, Julius T, Alana, Cesar and Roland can tick new items but
-// cannot untick an item already saved as YES (cabins and public areas). Julius L can change everything.
+// CHECKLIST LOCK (Admin) — when ON, Tech 1, Tech 2, Tech 3 and Tech 4 can tick new items but
+// cannot untick an item already saved as YES (cabins and public areas). Admin can change everything.
 // ---------------------------------------------------------------------------
-const CHECKLIST_LOCK_PROPERTY = 'NCL_TRACKER_LOCK_TICKED';
+const CHECKLIST_LOCK_PROPERTY = 'TRACKER_LOCK_TICKED';
 function isChecklistLocked_() { return PropertiesService.getScriptProperties().getProperty(CHECKLIST_LOCK_PROPERTY) === '1'; }
 
 function setChecklistLock(token, sessionId, on) {
   const auth = authenticateToken_(token);
   if (!auth) return { success: false, unauthorized: true, message: 'Your editing session expired. Please sign in again.' };
   if (String(sessionId || '').trim() !== String(auth.sessionId || '')) return { success: false, unauthorized: true, message: 'This browser session does not match your sign-in. Please sign in again.' };
-  if (auth.username !== 'Julius L') return { success: false, forbidden: true, message: 'Only Julius L can lock or unlock ticked checklist items.' };
+  if (auth.username !== 'Admin') return { success: false, forbidden: true, message: 'Only Admin can lock or unlock ticked checklist items.' };
   const props = PropertiesService.getScriptProperties();
   if (on) props.setProperty(CHECKLIST_LOCK_PROPERTY, '1'); else props.deleteProperty(CHECKLIST_LOCK_PROPERTY);
   appendAudit_(new Date(), auth.username, 'SESSION', '', on ? 'Locked ticked checklist items for other technicians' : 'Unlocked ticked checklist items',
@@ -1755,12 +1755,12 @@ function setChecklistLock(token, sessionId, on) {
     message: on ? 'Locked: other technicians can no longer untick items saved as YES.' : 'Unlocked: other technicians can tick and untick items again.' };
 }
 
-/** Julius L: lock / unlock chosen cabins. items = [{ cabin, cabinType }]. Writes Yes / No in the Locked column. */
+/** Admin: lock / unlock chosen cabins. items = [{ cabin, cabinType }]. Writes Yes / No in the Locked column. */
 function setCabinLocks(token, sessionId, items, on) {
   const auth = authenticateToken_(token);
   if (!auth) return { success: false, unauthorized: true, message: 'Your editing session expired. Please sign in again.' };
   if (String(sessionId || '').trim() !== String(auth.sessionId || '')) return { success: false, unauthorized: true, message: 'This browser session does not match your sign-in. Please sign in again.' };
-  if (auth.username !== 'Julius L') return { success: false, forbidden: true, message: 'Only Julius L can lock or unlock cabins.' };
+  if (auth.username !== 'Admin') return { success: false, forbidden: true, message: 'Only Admin can lock or unlock cabins.' };
   if (!Array.isArray(items) || !items.length) return { success: false, message: 'Select one or more cabins.' };
   if (items.length > 5000) return { success: false, message: 'Too many cabins in one go (maximum 5000).' };
   const lock = LockService.getScriptLock();
@@ -1796,12 +1796,12 @@ function setCabinLocks(token, sessionId, items, on) {
   } finally { if (lock.hasLock()) lock.releaseLock(); }
 }
 
-/** Julius L: lock / unlock public-area locations by ID (V001 …). Writes Yes / No in the Locked column. */
+/** Admin: lock / unlock public-area locations by ID (V001 …). Writes Yes / No in the Locked column. */
 function setVenueLocks(token, sessionId, ids, on) {
   const auth = authenticateToken_(token);
   if (!auth) return { success: false, unauthorized: true, message: 'Your editing session expired. Please sign in again.' };
   if (String(sessionId || '').trim() !== String(auth.sessionId || '')) return { success: false, unauthorized: true, message: 'This browser session does not match your sign-in. Please sign in again.' };
-  if (auth.username !== 'Julius L') return { success: false, forbidden: true, message: 'Only Julius L can lock or unlock locations.' };
+  if (auth.username !== 'Admin') return { success: false, forbidden: true, message: 'Only Admin can lock or unlock locations.' };
   if (!Array.isArray(ids) || !ids.length) return { success: false, message: 'No locations chosen.' };
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(20000)) throw new Error('The tracker is busy saving another update. Please try again in a few seconds.');
@@ -1837,31 +1837,31 @@ function setVenueLocks(token, sessionId, ids, on) {
 
 
 // ---------------------------------------------------------------------------
-// REPORTS, BACKUP & MAINTENANCE (2026-10-21) — Julius L
+// REPORTS, BACKUP & MAINTENANCE (2026-10-21) — Admin
 // ---------------------------------------------------------------------------
 const PROGRESS_SHEET = 'Daily Progress';
 const PROGRESS_HEADERS = ['Date','Guest TVs Installed','Guest TVs Needed','Crew TVs Installed','Crew TVs Needed',
   'Cabin TVs Installed','Cabin TVs Needed','Cabins Fully Configured','Cabins Total','Cabins Held Up',
   'Public Area TVs Installed','Public Area TVs Total','Public Area TVs Configured','Public Area TVs Held Up','Recorded At'];
-const BACKUP_FOLDER_NAME = 'NCL Escape Tracker Backups';
-const BACKUP_PREFIX = 'NCL Escape Tracker backup ';
+const BACKUP_FOLDER_NAME = 'Tracker Backups';
+const BACKUP_PREFIX = 'Tracker backup ';
 const BACKUP_KEEP_DAYS = 14;
-const SUMMARY_EMAIL_PROPERTY = 'NCL_TRACKER_SUMMARY_EMAIL';
-const SUMMARY_HOUR_PROPERTY = 'NCL_TRACKER_SUMMARY_HOUR';
-const LAST_BACKUP_PROPERTY = 'NCL_TRACKER_LAST_BACKUP';
-const API_KEY_PROPERTY = 'NCL_TRACKER_API_KEY';
-const MAINT_TRIGGERS_PROPERTY = 'NCL_TRACKER_MAINT_TRIGGERS_V1';
+const SUMMARY_EMAIL_PROPERTY = 'TRACKER_SUMMARY_EMAIL';
+const SUMMARY_HOUR_PROPERTY = 'TRACKER_SUMMARY_HOUR';
+const LAST_BACKUP_PROPERTY = 'TRACKER_LAST_BACKUP';
+const API_KEY_PROPERTY = 'TRACKER_API_KEY';
+const MAINT_TRIGGERS_PROPERTY = 'TRACKER_MAINT_TRIGGERS_V1';
 
 function todayStr_(d) { return Utilities.formatDate(d || new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd'); }
 
-/** { auth } for Julius L, otherwise { error } ready to return to the browser. */
+/** { auth } for Admin, otherwise { error } ready to return to the browser. */
 function requireAdmin_(token, sessionId) {
   const auth = authenticateToken_(token);
   if (!auth) return { error: { success: false, unauthorized: true, message: 'Your editing session expired. Please sign in again.' } };
   if (sessionId !== undefined && String(sessionId || '').trim() !== String(auth.sessionId || '')) {
     return { error: { success: false, unauthorized: true, message: 'This browser session does not match your sign-in. Please sign in again.' } };
   }
-  if (auth.username !== 'Julius L') return { error: { success: false, forbidden: true, message: 'Only Julius L can use this.' } };
+  if (auth.username !== 'Admin') return { error: { success: false, forbidden: true, message: 'Only Admin can use this.' } };
   return { auth };
 }
 
@@ -1877,7 +1877,7 @@ function installSummaryTrigger_() {
   ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'dailySummaryEmail').forEach(t => ScriptApp.deleteTrigger(t));
   ScriptApp.newTrigger('dailySummaryEmail').timeBased().everyDays(1).atHour(hour).create();
 }
-/** Installs the nightly + summary triggers once, the first time Julius L opens the tracker after this update. */
+/** Installs the nightly + summary triggers once, the first time Admin opens the tracker after this update. */
 function ensureMaintenanceTriggers_() {
   const props = PropertiesService.getScriptProperties();
   if (props.getProperty(MAINT_TRIGGERS_PROPERTY)) return '';
@@ -1902,7 +1902,7 @@ function cleanupExpiredSessions_() {
   const props = PropertiesService.getScriptProperties(), all = props.getProperties(), now = Date.now();
   let removed = 0;
   Object.keys(all).forEach(k => {
-    if (k.indexOf('NCL_AUTH_') !== 0) return;
+    if (k.indexOf('TRACKER_AUTH_') !== 0) return;
     let drop = false;
     try { const a = JSON.parse(all[k]); drop = !a || now - Number(a.lastSeenAt || a.createdAt || 0) > AUTH_CACHE_TTL_SECONDS * 1000; }
     catch (_) { drop = true; }
@@ -2043,7 +2043,7 @@ function buildDailySummary_() {
   const heldRows = heldCabins.slice(0, 40).map(c => [c.cabinType + ' ' + c.cabin, 'Deck ' + c.deck, c.assignedTo || 'Unassigned', String(c.comments || '').slice(0, 160)])
     .concat(heldVenues.slice(0, 40).map(x => [x.venue + (x.location ? ' — ' + x.location : ''), 'Deck ' + (x.deck || '?'), x.assignedTo || 'Unassigned', String(x.remarks || '').slice(0, 160)]));
   const html = '<div style="font-family:Arial,sans-serif;color:#111">' +
-    '<h2 style="margin:0 0 4px">NCL ESCAPE — Daily TV Installation Summary</h2><div style="color:#555;margin-bottom:14px">' + htmlEsc_(today) + ' · times in ' + htmlEsc_(tz) + '</div>' +
+    '<h2 style="margin:0 0 4px">Daily TV Installation Summary</h2><div style="color:#555;margin-bottom:14px">' + htmlEsc_(today) + ' · times in ' + htmlEsc_(tz) + '</div>' +
     '<h3>Progress</h3>' + table(['', 'Installed', 'Needed', 'Done', 'Since last record'], [
       ['Guest (PAX) cabin TVs', s.pax.tvsInstalled, s.pax.tvExpected, pct(s.pax.tvsInstalled, s.pax.tvExpected), prev ? sign(s.pax.tvsInstalled - prev.paxInstalled) : sign(null)],
       ['Crew cabin TVs', s.crew.tvsInstalled, s.crew.tvExpected, pct(s.crew.tvsInstalled, s.crew.tvExpected), prev ? sign(s.crew.tvsInstalled - prev.crewInstalled) : sign(null)],
@@ -2056,8 +2056,8 @@ function buildDailySummary_() {
     '<h3>TVs still to install per deck</h3>' + (decks.length ? table(['Deck', 'Installed', 'Needed', 'To go'], decks.map(x => ['Deck ' + x.d, x.ins, x.exp, x.left])) : '<p>All cabin TVs are installed.</p>') +
     '<h3>Held Up</h3>' + (heldRows.length ? table(['Cabin / location', 'Deck', 'Assigned to', 'Remarks'], heldRows) +
       (heldCabins.length + heldVenues.length > heldRows.length ? '<p>More in the Held Up report (.xlsx) in the tracker.</p>' : '') : '<p>Nothing is Held Up.</p>') +
-    '<p style="color:#777;font-size:12px">Automatic summary from the NCL ESCAPE Cabin TV Tracker. Change the time or address in the tracker: Reports &amp; Maintenance.</p></div>';
-  const text = 'NCL ESCAPE — Daily TV Installation Summary ' + today + '\n\n' +
+    '<p style="color:#777;font-size:12px">Automatic summary from the Cabin TV Tracker. Change the time or address in the tracker: Reports &amp; Maintenance.</p></div>';
+  const text = 'Daily TV Installation Summary ' + today + '\n\n' +
     'Cabin TVs installed: ' + s.tvsInstalled + ' of ' + s.tvExpected + ' (' + pct(s.tvsInstalled, s.tvExpected) + '), since last record ' + sign(sinceCab) + '\n' +
     'Public area TVs installed: ' + v['Installed'] + ' of ' + v.tvs + ', since last record ' + sign(sinceVen) + '\n' +
     'Cabins fully configured: ' + s.fullyConfigured + ' of ' + s.total + '\n' +
@@ -2071,10 +2071,10 @@ function sendDailySummary_() {
   if (!to) return { sent: false, reason: 'No daily summary email address is set.' };
   if (MailApp.getRemainingDailyQuota() <= 0) return { sent: false, reason: 'Google daily email quota is used up; it resets within 24 hours.' };
   const sum = buildDailySummary_();
-  MailApp.sendEmail({ to, subject: '[NCL ESCAPE Tracker] Daily summary ' + sum.today, htmlBody: sum.html, body: sum.text, name: 'NCL ESCAPE Cabin TV Tracker' });
+  MailApp.sendEmail({ to, subject: '[TV Tracker] Daily summary ' + sum.today, htmlBody: sum.html, body: sum.text, name: 'Cabin TV Tracker' });
   return { sent: true, to };
 }
-/** Trigger handler (daily, at the hour Julius L chose). */
+/** Trigger handler (daily, at the hour Admin chose). */
 function dailySummaryEmail() {
   try { const r = sendDailySummary_(); if (!r.sent) { try { recordDailyProgress_(); } catch (_) {} } console.log('Daily summary: ' + JSON.stringify(r)); }
   catch (err) { console.error('Daily summary failed: ' + err); }
@@ -2114,14 +2114,14 @@ function exportHeldUpReport(token) {
   });
   const venueRows = venues.map(v => [v.venue, v.location, v.deck, v.size ? v.size + '"' : '', v.qty, v.area + ' AREA', v.source, v.status, v.assignedTo || 'Unassigned', v.remarks || '', v.checkBy || '', v.checkedAt || '']);
   const day = todayStr_();
-  const base64 = sheetsToXlsx_('NCL Escape Held Up report ' + day, [
+  const base64 = sheetsToXlsx_('Held Up report ' + day, [
     { name: 'Cabins Held Up', headers: ['CABIN TYPE','CABIN NO','DECK','FZ','TV COUNT','HELD UP TVs','STATUS','ASSIGNED TO','REMARKS','WHAT TO CHECK','LAST UPDATED BY','LAST UPDATED AT'], rows: cabinRows },
     { name: 'Public Areas Held Up', headers: ['VENUE','LOCATION','DECK','TV SIZE','QTY','AREA','SOURCE','STATUS','ASSIGNED TO','REMARKS','LAST UPDATED BY','LAST UPDATED AT'], rows: venueRows }]);
-  return { success: true, filename: 'NCL_Escape_Held_Up_' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd_HHmm') + '.xlsx',
+  return { success: true, filename: 'TV_Tracker_Held_Up_' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd_HHmm') + '.xlsx',
     mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', base64, cabins: cabinRows.length, venues: venueRows.length };
 }
 
-// ---- web app (Julius L) ----
+// ---- web app (Admin) ----
 function getAdminStatus(token, sessionId) {
   const a = requireAdmin_(token, sessionId);
   if (a.error) return a.error;
@@ -2144,7 +2144,7 @@ function saveDailySummarySettings(token, sessionId, email, hour) {
   const props = PropertiesService.getScriptProperties();
   if (email) props.setProperty(SUMMARY_EMAIL_PROPERTY, email); else props.deleteProperty(SUMMARY_EMAIL_PROPERTY);
   props.setProperty(SUMMARY_HOUR_PROPERTY, String(h));
-  try { installSummaryTrigger_(); } catch (err) { return { success: false, message: 'Saved, but the daily timer could not be set: ' + err + '. Use the NCL Tracker Admin menu › Turn on nightly backup… in the spreadsheet.' }; }
+  try { installSummaryTrigger_(); } catch (err) { return { success: false, message: 'Saved, but the daily timer could not be set: ' + err + '. Use the Tracker Admin menu › Turn on nightly backup… in the spreadsheet.' }; }
   appendAudit_(new Date(), a.auth.username, 'SESSION', '', email ? 'Daily summary set to ' + email + ' at ' + ('0' + h).slice(-2) + ':00' : 'Daily summary turned off', 'Settings', String(a.auth.sessionId || ''));
   return { success: true, message: email ? 'Daily summary will be emailed to ' + email + ' every day at about ' + ('0' + h).slice(-2) + ':00 (' + Session.getScriptTimeZone() + ').' : 'Daily summary turned off.' };
 }
@@ -2205,7 +2205,7 @@ function showApiKeyFromMenu() {
 
 
 // ---------------------------------------------------------------------------
-// CUSTOM EXPORT (Julius L) — choose the checklist items, remarks and cabins to export
+// CUSTOM EXPORT (Admin) — choose the checklist items, remarks and cabins to export
 // opts = { items:[label…], tvScope:'all'|'tv1', scope:'all'|'PAX'|'CREW'|'list', cabins:[{cabin,cabinType}],
 //          rows:'all'|'remarks'|'todo'|'done', include:{status,assigned,remarks,what,updated,locked},
 //          venues:bool, venueItems:[label…], venueScope:'all'|'list', venueIds:[id…] }
@@ -2301,8 +2301,8 @@ function exportCustomExcel(token, opts) {
     sheets.push({ name: 'Public Areas', headers, rows, color: '#123650' });
   }
   if (!sheets.length) throw new Error('Choose at least one checklist item, Remarks / What to Check, or Public Areas.');
-  const base64 = sheetsToXlsx_('NCL Escape custom export ' + todayStr_(), sheets);
-  return { success: true, filename: 'NCL_Escape_Custom_Export_' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd_HHmm') + '.xlsx',
+  const base64 = sheetsToXlsx_('custom export ' + todayStr_(), sheets);
+  return { success: true, filename: 'TV_Tracker_Custom_Export_' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd_HHmm') + '.xlsx',
     mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', base64, cabins: cabinCount, venues: venueCount };
 }
 
@@ -2389,7 +2389,7 @@ function getTrackerSnapshot(token) {
   const dataVersion = getDataVersion(); // read before the data, so a change in between triggers another reload
   const all = getData_();
   const auth = authenticateToken_(token);
-  const cabins = !auth ? [] : (auth.username === 'Julius L' ? all : all.filter(c => c.assignedTo === auth.username));
+  const cabins = !auth ? [] : (auth.username === 'Admin' ? all : all.filter(c => c.assignedTo === auth.username));
   let venues = [], venueStats = null, venueError = '';
   try { const v = getVenueData_(); venueStats = buildVenueStats_(v); venues = auth ? v : []; }
   catch (err) { venueError = String(err && err.message ? err.message : err); console.warn('Public Area TVs not loaded: ' + venueError); }
@@ -2456,14 +2456,14 @@ function setMyWorkStatus(token, status) {
 function kickUser(adminToken, targetSessionId) {
   const admin = authenticateToken_(adminToken);
   if (!admin) return { success: false, unauthorized: true, message: 'Your administrator session expired. Please sign in again.' };
-  if (admin.username !== 'Julius L') return { success: false, message: 'Permission denied. Only Julius L can remove a user session.' };
+  if (admin.username !== 'Admin') return { success: false, message: 'Permission denied. Only Admin can remove a user session.' };
   targetSessionId = String(targetSessionId || '').trim();
   if (!targetSessionId) return { success: false, message: 'Missing target session.' };
   if (targetSessionId === admin.sessionId) return { success: false, message: 'You cannot kick out your own administrator session.' };
   const props = PropertiesService.getScriptProperties(), all = props.getProperties();
   let target = null, targetKey = '';
   Object.keys(all).forEach(k => {
-    if (k.indexOf('NCL_AUTH_') === 0) {
+    if (k.indexOf('TRACKER_AUTH_') === 0) {
       try { const a = JSON.parse(all[k]); if (a && a.sessionId === targetSessionId) { target = a; targetKey = k; } } catch (_) {}
     }
   });
@@ -2471,7 +2471,7 @@ function kickUser(adminToken, targetSessionId) {
   props.deleteProperty(targetKey);
   markSessionInactive_(targetSessionId);
   appendAudit_(new Date(), admin.username, 'SESSION', '', 'Removed ' + target.username + ' from the tracker', 'User Kicked Out', targetSessionId);
-  return { success: true, message: target.username + ' has been signed out by Julius L.' };
+  return { success: true, message: target.username + ' has been signed out by Admin.' };
 }
 
 function markSessionInactive_(sessionId) {
@@ -2514,12 +2514,12 @@ function testConnection() {
 }
 
 // ---------------------------------------------------------------------------
-// EXCEL EXPORT (Julius L only) — includes Remarks
-// The web app only shows the Export button to Julius L; the check below also blocks anyone else.
+// EXCEL EXPORT (Admin only) — includes Remarks
+// The web app only shows the Export button to Admin; the check below also blocks anyone else.
 // ---------------------------------------------------------------------------
 function exportTrackerExcel(token) {
   const auth = authenticateToken_(token);
-  if (!auth || auth.username !== 'Julius L') throw new Error('Export permission denied. Sign in as Julius L to export the complete tracker.');
+  if (!auth || auth.username !== 'Admin') throw new Error('Export permission denied. Sign in as Admin to export the complete tracker.');
 
   const records = getData_();
   const fields = ['CABIN TYPE','CABIN NO','DECK','FZ','TV installed','Power Connected','No TV Here','Patch cable','AP',SECURITY_DOOR,
@@ -2561,7 +2561,7 @@ function exportTrackerExcel(token) {
 
   let tempId = '';
   try {
-    const workbook = SpreadsheetApp.create('NCL Escape TV Tracker Export');
+    const workbook = SpreadsheetApp.create('TV Tracker Export');
     tempId = workbook.getId();
     const first = workbook.getSheets()[0];
     first.setName(sheets[0].name);
@@ -2592,7 +2592,7 @@ function exportTrackerExcel(token) {
       method: 'get', headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true
     });
     if (resp.getResponseCode() !== 200) throw new Error('Google Sheets XLSX export failed (HTTP ' + resp.getResponseCode() + ').');
-    const filename = 'NCL_Escape_TV_Tracker_' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd_HHmm') + '.xlsx';
+    const filename = 'TV_Tracker_Export_' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd_HHmm') + '.xlsx';
     const blob = resp.getBlob().setName(filename);
     return {
       success: true, filename,
@@ -2608,8 +2608,8 @@ function exportTrackerExcel(token) {
 
 // ---------------------------------------------------------------------------
 // MOBILE APP JSON API (read-only)
-// Called by the Escape TV Tracker phone app as  <exec URL>?api=sheets&key=...
-// The key is created by Julius L (Reports & Maintenance › Show API key, or the admin menu) and kept in
+// Called by the Cabin TV Tracker phone app as  <exec URL>?api=sheets&key=...
+// The key is created by Admin (Reports & Maintenance › Show API key, or the admin menu) and kept in
 // Script Properties. Put the same key in API_KEY in the app's App.js. With no key created, the link is off.
 // ---------------------------------------------------------------------------
 
@@ -2617,7 +2617,7 @@ function handleApi_(e) {
   try {
     const p = e.parameter || {};
     const expectedKey = PropertiesService.getScriptProperties().getProperty(API_KEY_PROPERTY);
-    if (!expectedKey) return apiJson_({ ok: false, error: 'Phone app link is turned off. Julius L must create the API key in the tracker first.' });
+    if (!expectedKey) return apiJson_({ ok: false, error: 'Phone app link is turned off. Admin must create the API key in the tracker first.' });
     if (!constantTimeEqual_(String(p.key || ''), expectedKey)) return apiJson_({ ok: false, error: 'Unauthorized' });
     const ss = SpreadsheetApp.getActiveSpreadsheet();
 

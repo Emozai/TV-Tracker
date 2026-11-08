@@ -1,7 +1,7 @@
-# Escape TV Tracker – mobile app
+# Cabin TV Tracker – mobile app
 
 ## Tracker web app source (`apps-script/`)
-The NCL Escape Combined PAX + Crew TV Installation Tracker (Google Apps Script):
+The Combined PAX + Crew TV Installation Tracker (Google Apps Script):
 - `apps-script/Code.gs` – server logic + cabin inventory
 - `apps-script/Index.html` – the web app page
 - `apps-script/PasswordSetup.html` – technician password setup dialog
@@ -14,11 +14,11 @@ tracker starts empty and the admin uploads their own lists.
 1. Create a Google Sheet → Extensions → Apps Script. Add `Code.gs`,
    `Index.html` and `PasswordSetup.html` (same file names).
 2. Run `setup()` once from the editor and allow the permissions.
-3. Project Settings → Script Properties: add `NCL_TRACKER_ADMIN_SETUP_KEY`
-   (any long secret). Reload the sheet and use the **NCL Tracker Admin →
+3. Project Settings → Script Properties: add `TRACKER_ADMIN_SETUP_KEY`
+   (any long secret). Reload the sheet and use the **Tracker Admin →
    Set / Reset Technician Passwords** menu to give each account a password.
    Account names are in `TECHNICIANS` at the top of `Code.gs`; the admin
-   account is `Julius L`.
+   account is `Admin`.
 4. Deploy → New deployment → Web app (Execute as: Me). Open the `/exec` link
    and sign in as the admin.
 5. Open **Upload Cabins & Public Areas**, download the templates, fill them
@@ -79,6 +79,6 @@ Scan the QR code with the **Expo Go** app (Android / iPhone).
 1. Create a new repo on github.com (can be private).
 2. Upload everything in this folder, including the `.github` folder.
 3. Open the **Actions** tab → "Build Android APK" runs automatically (about 10–15 min).
-4. When it shows a green tick, open the run → **Artifacts** → download `EscapeTVTracker-apk`.
+4. When it shows a green tick, open the run → **Artifacts** → download `CabinTVTracker-apk`.
 5. Unzip it on your Android phone and tap the `.apk` to install (allow "install unknown apps").
 Every time you change a file, a new APK is built.

@@ -1,5 +1,5 @@
 /**
- * JSON API for the NCL Escape TV mobile app.
+ * JSON API for the TV mobile app.
  * Add this as a new file (Api.gs) in your Apps Script project.
  *
  * Then change your existing doGet so it starts like this:

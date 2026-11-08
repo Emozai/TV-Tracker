@@ -7,7 +7,7 @@ import {
 // ===== SETTINGS =====
 // Your Apps Script web app URL (ends in /exec)
 const API_URL =
-  'https://script.google.com/macros/s/AKfycby9_rNbHLwIu84ndTlM-6GVdtu_z5IfuBJkIPOPQiuUXdUshE0Oo5JVt8Is9bXYL8jzkQ/exec';
+  'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
 // Must match API_KEY in Api.gs
 const API_KEY = 'change-me-to-something-long';
 // Column used to color the status badge (first header containing this word)
@@ -61,7 +61,7 @@ function SheetsScreen({ onOpen }) {
       refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
       ListHeaderComponent={
         <View>
-          <Text style={styles.h1}>NCL Escape</Text>
+          <Text style={styles.h1}>Cabin TV</Text>
           <Text style={styles.sub}>PAX + Crew TV Tracker</Text>
           {!!error && <Text style={styles.error}>{error}</Text>}
           {!!updated && <Text style={styles.meta}>Updated {new Date(updated).toLocaleString()}</Text>}

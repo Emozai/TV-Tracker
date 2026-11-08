@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "Escape TV Tracker",
-    "slug": "escape-tv-tracker",
+    "name": "Cabin TV Tracker",
+    "slug": "cabin-tv-tracker",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0B1220",
-    "ios": { "bundleIdentifier": "com.escapetv.tracker", "supportsTablet": true },
-    "android": { "package": "com.escapetv.tracker" }
+    "ios": { "bundleIdentifier": "com.cabintv.tracker", "supportsTablet": true },
+    "android": { "package": "com.cabintv.tracker" }
   }
 }

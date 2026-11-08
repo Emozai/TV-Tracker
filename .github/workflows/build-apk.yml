@@ -32,5 +32,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: EscapeTVTracker-apk
+          name: CabinTVTracker-apk
           path: android/app/build/outputs/apk/release/*.apk

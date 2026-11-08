@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0A2033">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800&display=swap" rel="stylesheet">
-<title>NCL Escape TV Tracker</title>
+<title>TV Tracker</title>
 <style>
 :root{
   --bg:#06172a;--panel:#0d2640;--panel2:#08203a;--line:#24506d;--text:#f2f8fc;--muted:#a9c3d6;
@@ -117,7 +117,7 @@ td button{background:none;border:0;color:#62e5e0;text-decoration:underline;font-
 .assignOpt{display:flex;align-items:center;gap:8px;padding:8px;border:1px solid #2c536f;border-left:4px solid var(--tc,#94a3b8);border-radius:7px;font-size:12px;text-transform:none;letter-spacing:0;color:var(--text);font-weight:600}
 .assignOpt small{margin-left:auto;color:var(--tc,#94a3b8);font-weight:800}
 /* Technician colours */
-.tech-julius-t{--tc:#38bdf8}.tech-alana{--tc:#f472b6}.tech-cesar{--tc:#fbbf24}.tech-roland{--tc:#a78bfa}.tech-julius-l{--tc:#34d399}.tech-unassigned{--tc:#94a3b8}
+.tech-tech-1{--tc:#38bdf8}.tech-tech-2{--tc:#f472b6}.tech-tech-3{--tc:#fbbf24}.tech-tech-4{--tc:#a78bfa}.tech-admin{--tc:#34d399}.tech-unassigned{--tc:#94a3b8}
 .tech-tv-check-1{--tc:#22d3ee}.tech-tv-check-2{--tc:#fb923c}.tech-tv-check-3{--tc:#a3e635}.tech-tv-check-4{--tc:#e879f9}.tech-tv-check-5{--tc:#facc15}.tech-tv-check-6{--tc:#f87171}
 /* Cabin cards */
 .result{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:18px 0 12px;flex-wrap:wrap}
@@ -398,13 +398,13 @@ td.wrapcell{white-space:normal;min-width:220px}
 </section>
 <header class="hero">
   <!-- Header photo comes from the Photo.html file (it holds only the data URL: data:image/jpeg;base64,...). If Photo.html is missing the photo is hidden. -->
-  <div class="hero-photo"><img id="heroPhoto" src="<?!= include('Photo') ?>" alt="Broadcast Center team on Norwegian Escape"></div>
+  <div class="hero-photo"><img id="heroPhoto" src="<?!= include('Photo') ?>" alt="TV installation team"></div>
   <div class="wrap">
     <div class="brand">
-      <div class="mark">NCL<br>ESCAPE</div>
+      <div class="mark">CABIN<br>TV</div>
       <div>
         <h1>Pax and Crew<br>TV Installation <span>Tracker</span></h1>
-        <p class="tag">NCL ESCAPE · BROADCAST OPERATIONS <b>— Same Cabins, Brighter Voyages</b></p>
+        <p class="tag">· BROADCAST OPERATIONS <b>— Same Cabins, Brighter Voyages</b></p>
       </div>
     </div>
     <div class="sub">PASSENGER + CREW CABINS · LIVE INSTALLATION STATUS · BROADCAST CENTER</div>
@@ -413,7 +413,7 @@ td.wrapcell{white-space:normal;min-width:220px}
 <section class="userbar wrap">
   <div class="userpick">
     <label for="activeTech">Technician Account</label>
-    <select id="activeTech"><option value="">Select account</option><option>Julius T</option><option>Alana</option><option>Cesar</option><option>Roland</option><option>Julius L</option><option>TV Check 1</option><option>TV Check 2</option><option>TV Check 3</option><option>TV Check 4</option><option>TV Check 5</option><option>TV Check 6</option></select>
+    <select id="activeTech"><option value="">Select account</option><option>Tech 1</option><option>Tech 2</option><option>Tech 3</option><option>Tech 4</option><option>Admin</option><option>TV Check 1</option><option>TV Check 2</option><option>TV Check 3</option><option>TV Check 4</option><option>TV Check 5</option><option>TV Check 6</option></select>
     <label for="editCode" style="margin-top:10px">Individual Password</label>
     <div class="passwordRow">
       <input id="editCode" type="password" autocomplete="current-password" placeholder="Enter your password">
@@ -425,7 +425,7 @@ td.wrapcell{white-space:normal;min-width:220px}
       <button id="logoutBtn" class="btn secondary" type="button" hidden>Logout</button>
     </div>
     <span id="modeBadge" class="modeBadge">READ-ONLY VIEW</span>
-    <span id="identityNote">Sign in to view and update your assigned cabins. Editors: Julius T, Alana, Cesar, Roland, Julius L and TV Check 1–6.</span>
+    <span id="identityNote">Sign in to view and update your assigned cabins. Editors: Tech 1, Tech 2, Tech 3, Tech 4, Admin and TV Check 1–6.</span>
   </div>
   <div class="presence">
     <div class="presenceTitle"><span class="liveDot"></span> ACTIVE USERS <button id="refreshUsers" class="btn secondary" type="button">Refresh</button></div>
@@ -436,16 +436,16 @@ td.wrapcell{white-space:normal;min-width:220px}
   <div id="msg" class="msg" role="status" aria-live="polite"></div>
   <section class="panel" id="exportPanel" hidden style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
     <button class="btn" id="exportExcel" type="button">Export All to Excel (.xlsx)</button>
-    <span id="exportNote" class="muted">Only Julius L can run the full export.</span>
+    <span id="exportNote" class="muted">Only Admin can run the full export.</span>
   </section>
   <section class="panel" id="lockPanel" hidden>
-    <h2>Checklist Lock (Julius L)</h2>
+    <h2>Checklist Lock (Admin)</h2>
     <label class="check" style="border:0"><input type="checkbox" id="lockTickedToggle"><span>Lock ticked items — the other technicians can still tick new items and add remarks, but cannot untick anything already saved as YES (cabins and public areas). You can still change everything.</span></label>
     <div id="lockMsg" class="muted"></div>
     <div class="muted" style="margin-top:8px">To lock only some cabins or locations, use the 🔒 Lock box on each card, or select cabins (Select / Select all shown) and press 🔒 Lock selected. On Public Areas, filter the list and press 🔒 Lock all shown. Checklist Category › 🔒 Locked cabins lists the locked cabins.</div>
   </section>
   <div id="dashboardTop"></div>
-  <div id="lockNote" hidden>🔒 Julius L has locked ticked items. You can tick new items and add remarks, but items already saved as YES cannot be unticked.</div>
+  <div id="lockNote" hidden>🔒 Admin has locked ticked items. You can tick new items and add remarks, but items already saved as YES cannot be unticked.</div>
   <div class="viewSwitch" role="tablist" aria-label="Choose what to track">
     <button type="button" data-view="cabins" class="active">Cabins<small>Guest (PAX) + Crew cabins</small></button>
     <button type="button" data-view="venues">Public Areas<small>Crew &amp; Pax area TVs · by deck</small></button>
@@ -538,7 +538,7 @@ td.wrapcell{white-space:normal;min-width:220px}
       <div id="assignExcelStatus" class="muted" style="margin-top:6px"></div>
     </div>
     <div class="assignmentControls">
-      <label>Assign To Technician<select id="bulkAssignTech"><option value="">Choose technician</option><option>Julius T</option><option>Alana</option><option>Cesar</option><option>Roland</option><option>Julius L</option><option>TV Check 1</option><option>TV Check 2</option><option>TV Check 3</option><option>TV Check 4</option><option>TV Check 5</option><option>TV Check 6</option><option value="__UNASSIGNED__">Unassigned</option></select></label>
+      <label>Assign To Technician<select id="bulkAssignTech"><option value="">Choose technician</option><option>Tech 1</option><option>Tech 2</option><option>Tech 3</option><option>Tech 4</option><option>Admin</option><option>TV Check 1</option><option>TV Check 2</option><option>TV Check 3</option><option>TV Check 4</option><option>TV Check 5</option><option>TV Check 6</option><option value="__UNASSIGNED__">Unassigned</option></select></label>
       <label>Find Cabins<input id="assignmentSearch" type="search" placeholder="Search cabin number"></label>
       <label>Cabin Type<select id="assignmentType"><option value="ALL">PAX + CREW</option><option value="PAX">PAX only</option><option value="CREW">CREW only</option></select></label>
       <label>Deck<select id="assignmentDeck"><option value="">All decks</option></select></label>
@@ -569,7 +569,7 @@ td.wrapcell{white-space:normal;min-width:220px}
       <label>Cabin Type<select id="type"><option value="ALL">Pax + Crew</option><option value="PAX">Passenger</option><option value="CREW">Crew</option></select></label>
       <label>Deck<select id="deck"><option value="">All Decks</option></select></label>
       <label>Status<select id="status"><option value="all">All statuses</option><option>Fully Configured</option><option>In Progress</option><option>Not Started</option></select></label>
-      <label>Assigned Technician<select id="assignedTech"><option value="">All technicians</option><option>Julius T</option><option>Alana</option><option>Cesar</option><option>Roland</option><option>Julius L</option><option>TV Check 1</option><option>TV Check 2</option><option>TV Check 3</option><option>TV Check 4</option><option>TV Check 5</option><option>TV Check 6</option><option value="__UNASSIGNED__">Unassigned</option></select></label>
+      <label>Assigned Technician<select id="assignedTech"><option value="">All technicians</option><option>Tech 1</option><option>Tech 2</option><option>Tech 3</option><option>Tech 4</option><option>Admin</option><option>TV Check 1</option><option>TV Check 2</option><option>TV Check 3</option><option>TV Check 4</option><option>TV Check 5</option><option>TV Check 6</option><option value="__UNASSIGNED__">Unassigned</option></select></label>
       <label>Checklist Category<select id="checklistCategory"><option value="">All categories</option><option value="No TV Here">No TV Here</option><option value="Security to Open the Door">🔐 Security to Open the Door (PAX)</option><option value="TV installed">TV Installed</option><option value="Power Connected">Powering On</option><option value="Patch cable">Patch Cable (PAX) / LAN Connected (Crew)</option><option value="AP">AP (PAX TV 1)</option><option value="Fully Configured">Fully Configured</option><option value="Tested">Tested</option><option value="Held Up">Held Up</option><option value="__LOCKED__">🔒 Locked cabins</option></select></label>
       <label>Category Status<select id="checklistState"><option value="all">All</option><option value="pending">Needs checking / No</option><option value="done">Checked / Yes</option></select></label>
       <label id="excelUploadWrap" hidden>Upload Excel cabin list<input id="excelCabinFile" type="file" accept=".xlsx,.xls,.csv"></label>
@@ -628,7 +628,7 @@ td.wrapcell{white-space:normal;min-width:220px}
   <div id="grid" class="grid cabinView"></div>
   <div id="gridMore" class="cabinView" style="text-align:center;margin:16px 0" hidden><button type="button" class="btn secondary" id="showMoreBtn">Show more cabins</button></div>
   <div id="empty" class="empty cabinView" hidden>No cabins match your filters.</div>
-  <div class="footer"><b>NCL ESCAPE</b> · Entertainment Technical Support · Keep our Crew and Guests Connected · Data is saved in the linked Google Sheet.<br><span id="scriptVersion">Script version: checking…</span></div>
+  <div class="footer"><b>Cabin TV Tracker</b> · Technical Support · Keep our Crew and Guests Connected · Data is saved in the linked Google Sheet.<br><span id="scriptVersion">Script version: checking…</span></div>
 </main>
 <div id="tickModal" class="tick-modal" role="dialog" aria-modal="true" aria-labelledby="tickTitle">
   <div class="tick-box">
@@ -657,12 +657,12 @@ td.wrapcell{white-space:normal;min-width:220px}
 'use strict';
 const $ = id => document.getElementById(id);
 // ---------------------------------------------------------------- constants
-const SESSION_KEY = 'nclEscapeTrackerSessionId', AUTH_KEY = 'nclEscapeTrackerAuthToken', PENDING_KEY = 'NCL_PAX_CREW_TV_PENDING_V1';
+const SESSION_KEY = 'cabinTvTrackerSessionId', AUTH_KEY = 'cabinTvTrackerAuthToken', PENDING_KEY = 'TRACKER_PAX_CREW_TV_PENDING_V1';
 const SECURITY_DOOR = 'Security to Open the Door'; // PAX only, one per cabin, does not change the status
 const PAX_CHECKS = ['No TV Here',SECURITY_DOOR,'TV installed','Power Connected','Patch cable','AP','Fully Configured','Tested','Held Up'];
 const CREW_CHECKS = ['No TV Here','TV installed','Power Connected','Patch cable','Fully Configured','Tested','Held Up']; // Patch cable shows as "LAN Connected" on crew cabins
 const PAX_EXTRA_TV_CHECKS = ['No TV Here','TV installed','Power Connected','Patch cable','Fully Configured','Tested','Held Up']; // TV 2/3: no AP, no Security
-const TECHS = ['Julius T','Alana','Cesar','Roland','Julius L','TV Check 1','TV Check 2','TV Check 3','TV Check 4','TV Check 5','TV Check 6'];
+const TECHS = ['Tech 1','Tech 2','Tech 3','Tech 4','Admin','TV Check 1','TV Check 2','TV Check 3','TV Check 4','TV Check 5','TV Check 6'];
 const CREW_LINKED = ['TV installed','Power Connected','Patch cable']; // crew: TV Installed = Powering On = LAN Connected
 // ---------------------------------------------------------------- state
 let sessionId = '';
@@ -670,10 +670,10 @@ try { sessionId = sessionStorage.getItem(SESSION_KEY) || ''; } catch (_) {}
 if (!sessionId) { sessionId = 'sess-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10); try { sessionStorage.setItem(SESSION_KEY, sessionId); } catch (_) {} }
 let cabins = [], statusFilter = 'all', checkFilter = '', editorUnlocked = false, authToken = '', activeCabin = '';
 let loadInFlight = false, reloadQueued = false, lastSignature = '', filtered = [], pendingQueue = [], retryInFlight = false;
-// Cabin cards are drawn a page at a time (Julius L sees every cabin; drawing them all at once made the page slow).
+// Cabin cards are drawn a page at a time (Admin sees every cabin; drawing them all at once made the page slow).
 const PAGE_SIZE = window.matchMedia('(max-width: 700px)').matches ? 30 : 60, ASSIGN_LIMIT = 300;
 let pageLimit = PAGE_SIZE, renderedCount = 0, lastFilterKey = '';
-let lockTicked = false; // set by Julius L: other technicians cannot untick saved YES items
+let lockTicked = false; // set by Admin: other technicians cannot untick saved YES items
 function lockedFor(on, rowLocked) { return !!on && (lockTicked || !!rowLocked) && editorUnlocked && !isAdmin(); }
 let uploadedAssignments = new Map(), uploadedWhat = new Map(), uploadedBadTechs = 0;
 let uploadedCabinKeys = null, uploadedRemarks = new Map(), categoryFilter = '', categoryState = 'all';
@@ -703,7 +703,7 @@ function getStatus(c) {
 function pillClass(st) { return st === 'Fully Configured' ? 'done' : st === 'In Progress' ? 'progress' : ''; }
 function techClass(name) { const n = String(name || '').trim().toLowerCase().replace(/\s+/g, '-'); return TECHS.map(t => t.toLowerCase().replace(/\s+/g, '-')).includes(n) ? 'tech-' + n : 'tech-unassigned'; }
 function chosenTech() { return $('activeTech').value || ''; }
-function isAdmin() { return editorUnlocked && chosenTech() === 'Julius L'; }
+function isAdmin() { return editorUnlocked && chosenTech() === 'Admin'; }
 function msg(text, kind) { const e = $('msg'); e.textContent = text; e.className = 'msg show ' + (kind || 'success'); }
 function setRefreshStatus(t) { $('refreshStatus').textContent = t; }
 function presenceMarkup(name) {
@@ -964,7 +964,7 @@ function pendingUploadedAssignments() {
   }).filter(it => 'technician' in it || 'whatToCheck' in it);
 }
 function saveUploadedAssignments() {
-  if (!isAdmin() || !authToken) { msg('Sign in as Julius L to save uploaded assignments.', 'error'); return; }
+  if (!isAdmin() || !authToken) { msg('Sign in as Admin to save uploaded assignments.', 'error'); return; }
   const items = pendingUploadedAssignments();
   if (!items.length) { msg('All uploaded assignments are already saved.', 'success'); return; }
   const per = {};
@@ -1043,7 +1043,7 @@ function dirtyCards() { return [...document.querySelectorAll('.cabin[data-dirty=
 function updateBulkBar() {
   const bar = $('bulkBar'); if (!bar) return;
   bar.hidden = !editorUnlocked;
-  // Select / batch tick controls: Julius L only.
+  // Select / batch tick controls: Admin only.
   bar.querySelectorAll('[data-adminonly]').forEach(el => { el.hidden = !isAdmin(); });
   if (!isAdmin()) selectedCabins.clear();
   // Drop selections for cabins that are no longer in the list.
@@ -1096,7 +1096,7 @@ function batchTargets() {
 }
 function updateBatchPanel() {
   const p = $('batchPanel'); if (!p) return;
-  p.hidden = !isAdmin(); // Batch Tick Checklist: Julius L only
+  p.hidden = !isAdmin(); // Batch Tick Checklist: Admin only
   if (p.hidden) return;
   const n = batchTargets().length, b = $('batchApply'), sel = $('batchTarget').value === 'selected';
   $('batchInfo').textContent = (sel
@@ -1106,7 +1106,7 @@ function updateBatchPanel() {
   if (b.textContent !== 'Applying…') { b.disabled = !n; b.textContent = 'Apply to ' + n.toLocaleString() + ' cabin' + (n === 1 ? '' : 's'); }
 }
 function applyBatch() {
-  if (!isAdmin() || !authToken) { msg('Only Julius L can use Batch Tick Checklist.', 'error'); return; }
+  if (!isAdmin() || !authToken) { msg('Only Admin can use Batch Tick Checklist.', 'error'); return; }
   if (dirtyCards().length) { msg('Some cabins have unsaved changes. Press "Save all changed cabins" first, then run the batch tick.', 'error'); return; }
   const labels = [...document.querySelectorAll('#batchFields input:checked')].map(i => i.value);
   if (!labels.length) { $('batchMsg').textContent = 'Choose at least one checklist item.'; return; }
@@ -1153,7 +1153,7 @@ function card(c) {
     tvChecksForCabin(c, n).map(x => {
       const on = yes(c[x.field]);
       const lk = lockedFor(on, c.locked);
-      return '<label class="check' + (x.label === SECURITY_DOOR ? ' secdoor' : '') + '"><input type="checkbox" data-field="' + esc(x.field) + '" data-tv="' + n + '" data-label="' + esc(x.label) + '"' + (on ? ' checked' : '') + (lk ? ' disabled data-locked title="Locked by Julius L"' : '') + '><span>' + esc(checkLabel(c, x.label)) + '</span><small>' + (on ? (lk ? 'YES 🔒' : 'YES') : '') + '</small></label>';
+      return '<label class="check' + (x.label === SECURITY_DOOR ? ' secdoor' : '') + '"><input type="checkbox" data-field="' + esc(x.field) + '" data-tv="' + n + '" data-label="' + esc(x.label) + '"' + (on ? ' checked' : '') + (lk ? ' disabled data-locked title="Locked by Admin"' : '') + '><span>' + esc(checkLabel(c, x.label)) + '</span><small>' + (on ? (lk ? 'YES 🔒' : 'YES') : '') + '</small></label>';
     }).join('') + '</section>').join('');
   const assignSelect = isAdmin()
     ? '<label class="assign">Assigned Technician<select data-assigned-to><option value="">Unassigned</option>' +
@@ -1164,7 +1164,7 @@ function card(c) {
     '<div class="meta">' + esc(c.cabinType) + ' · Deck ' + esc(c.deck || '—') + ' · FZ ' + esc(c.fz || '—') + ' · ' + tvCount + ' TV' + (tvCount > 1 ? 's' : '') + '</div></div>' +
     '<div class="head-actions">' +
     '<span class="pill ' + pillClass(st) + '">' + esc(st) + '</span>' +
-    '<span class="pill lockpill"' + (c.locked ? '' : ' hidden') + ' title="Locked by Julius L">🔒 LOCKED</span>' +
+    '<span class="pill lockpill"' + (c.locked ? '' : ' hidden') + ' title="Locked by Admin">🔒 LOCKED</span>' +
     (isAdmin() ? '<label class="selbox lockbox" title="Lock: other technicians cannot untick items saved as YES"><input type="checkbox" data-lockrow' + (c.locked ? ' checked' : '') + '>🔒 Lock</label>' : '') +
     (isAdmin() ? '<label class="selbox" title="Select for batch tick"><input type="checkbox" data-select' + (selectedCabins.has(keyOfCabin(c)) ? ' checked' : '') + '>Select</label>' : '') +
     '<button type="button" class="open-full" title="Open full screen">⛶ OPEN</button>' +
@@ -1370,7 +1370,7 @@ function retryPending(manual) {
       pendingQueue = pendingQueue.filter(x => x !== item); writePending();
       msg('Pending save confirmed for ' + (isVenue ? item.cabin : 'cabin ' + (r.cabin || item.cabin)) + '.', 'success');
     } else if (r && r.locked) {
-      // Julius L locked ticked items while this save was waiting: drop it and reload the latest values.
+      // Admin locked ticked items while this save was waiting: drop it and reload the latest values.
       pendingQueue = pendingQueue.filter(x => x !== item); writePending();
       msg('Pending save for ' + label + ' was not applied: ' + r.message, 'error');
       load(true);
@@ -1389,15 +1389,15 @@ function retryPending(manual) {
   });
   if (isVenue) run.saveVenue(item.data); else run.saveTV(Number(item.rowNumber), item.data);
 }
-// ---------------------------------------------------------------- assignments (Julius L)
+// ---------------------------------------------------------------- assignments (Admin)
 function updateAdminVisibility() {
   const allowed = isAdmin();
   $('technicianAssignmentPanel').hidden = !allowed;
   updateInventoryPanel();
-  // Export All to Excel: Julius L only. Hidden for Julius T, Alana, Cesar, Roland and signed-out users.
+  // Export All to Excel: Admin only. Hidden for Tech 1, Tech 2, Tech 3, Tech 4 and signed-out users.
   $('exportPanel').hidden = !allowed;
   updateLockUi();
-  // Upload Excel cabin list + Batch Tick Checklist: Julius L only.
+  // Upload Excel cabin list + Batch Tick Checklist: Admin only.
   ['excelUploadWrap','clearExcelFilter','excelUploadStatus'].forEach(id => { $(id).hidden = !allowed; });
   if (!allowed && (uploadedCabinKeys || uploadedRemarks.size)) {
     uploadedCabinKeys = null; uploadedRemarks = new Map(); uploadedAssignments = new Map(); uploadedWhat = new Map(); uploadedBadTechs = 0;
@@ -1449,7 +1449,7 @@ function selectUploadedForAssignment() {
   return hits.length;
 }
 function saveAssignments() {
-  if (!isAdmin()) { msg('Only Julius L can manage cabin assignments.', 'error'); return; }
+  if (!isAdmin()) { msg('Only Admin can manage cabin assignments.', 'error'); return; }
   const choice = $('bulkAssignTech').value;
   if (!choice) { $('assignmentMessage').textContent = 'Choose a technician first.'; return; }
   const tech = choice === '__UNASSIGNED__' ? '' : choice;
@@ -1679,7 +1679,7 @@ function parseCsv(text) {
   return rows;
 }
 function saveUploadedRemarks() {
-  if (!isAdmin() || !authToken) { msg('Only Julius L can save remarks from an uploaded list.', 'error'); return; }
+  if (!isAdmin() || !authToken) { msg('Only Admin can save remarks from an uploaded list.', 'error'); return; }
   if (document.querySelector('.cabin[data-dirty="true"]')) { msg('Save or finish the cabin you are editing first, then save the uploaded remarks.', 'error'); return; }
   const items = pendingUploadedRemarks();
   if (!items.length) { msg('All uploaded remarks are already saved on these cabins.', 'success'); return; }
@@ -1701,7 +1701,7 @@ function saveUploadedRemarks() {
 }
 async function handleUpload(file) {
   if (!file) return;
-  if (!isAdmin()) { msg('Only Julius L can upload an Excel cabin list.', 'error'); return; }
+  if (!isAdmin()) { msg('Only Admin can upload an Excel cabin list.', 'error'); return; }
   excelStatus('Reading ' + file.name + '…');
   try {
     let rows;
@@ -1720,7 +1720,7 @@ async function handleUpload(file) {
     const waiting = pendingUploadedRemarks().length, assignWaiting = pendingUploadedAssignments().length;
     const summary = 'Loaded ' + p.count + ' cabins from ' + file.name + ' (' + p.assignCount + ' with a technician, ' + p.whatCount + ' with What to Check, ' + p.remarkCount + ' with remarks). ' + filtered.length + ' match.' +
       (waiting ? ' ' + waiting + ' remark(s) are shown on the cabins — press "Save Uploaded Remarks" to add them to the tracker.' : '') +
-      (assignWaiting ? ' ' + assignWaiting + ' cabin(s) have new assignments / What to Check' + (isAdmin() ? ' — press "Save Assignments from Excel".' : ' — Julius L must sign in to save them.') : '') +
+      (assignWaiting ? ' ' + assignWaiting + ' cabin(s) have new assignments / What to Check' + (isAdmin() ? ' — press "Save Assignments from Excel".' : ' — Admin must sign in to save them.') : '') +
       (p.badTech ? ' ' + p.badTech + ' row(s) have a technician name that is not recognised (use: ' + TECHS.join(', ') + ').' : '') +
       (!waiting && !assignWaiting ? ' Tracker data was not changed.' : '');
     const picked = selectUploadedForAssignment();
@@ -1842,7 +1842,7 @@ function updateInventoryPanel() {
 }
 // ---------------------------------------------------------------- Assignment Excel download
 function downloadAssignmentExcel() {
-  if (!isAdmin() || !authToken) { msg('Sign in as Julius L to download the assignment Excel.', 'error'); return; }
+  if (!isAdmin() || !authToken) { msg('Sign in as Admin to download the assignment Excel.', 'error'); return; }
   const b = $('downloadAssignExcel'), label = b.textContent;
   b.disabled = true; b.textContent = 'Preparing Excel…';
   google.script.run.withSuccessHandler(r => {
@@ -1859,7 +1859,7 @@ function downloadAssignmentExcel() {
 }
 // ---------------------------------------------------------------- Excel export
 function exportExcel() {
-  if (!isAdmin() || !authToken) { msg('Sign in as Julius L to export the complete tracker.', 'error'); return; }
+  if (!isAdmin() || !authToken) { msg('Sign in as Admin to export the complete tracker.', 'error'); return; }
   const b = $('exportExcel'), label = b.textContent;
   b.disabled = true; b.textContent = 'Preparing Excel…';
   google.script.run.withSuccessHandler(r => {
@@ -2207,7 +2207,7 @@ function renderVenues(force) {
   $('vCount').textContent = 'Showing ' + list.length + ' of ' + venues.length + ' locations · ' + tv + ' TVs';
   updateVenueTabs();
 }
-function canAssignVenues() { return editorUnlocked && ['Julius L','Cesar'].includes(chosenTech()); }
+function canAssignVenues() { return editorUnlocked && ['Admin','Tech 3'].includes(chosenTech()); }
 function venueCard(v) {
   const a = document.createElement('article');
   a.className = 'vcard ' + techClass(v.assignedTo) + (v.checks['Held Up'] ? ' held' : '');
@@ -2218,7 +2218,7 @@ function venueCard(v) {
   a.innerHTML =
     '<div class="vhead"><div style="min-width:0"><div class="vname">' + esc(v.venue) + '</div><div class="vloc">' + esc(v.location || '—') + '</div></div>' +
     '<div class="head-actions"><span class="pill ' + pillClass(v.status) + '">' + esc(v.status) + '</span>' +
-    '<span class="pill lockpill"' + (v.locked ? '' : ' hidden') + ' title="Locked by Julius L">🔒 LOCKED</span>' +
+    '<span class="pill lockpill"' + (v.locked ? '' : ' hidden') + ' title="Locked by Admin">🔒 LOCKED</span>' +
     (isAdmin() ? '<label class="selbox lockbox" title="Lock: other technicians cannot untick items saved as YES"><input type="checkbox" data-vlockrow' + (v.locked ? ' checked' : '') + '>🔒 Lock</label>' : '') +
     '<button type="button" class="open-full" title="Open full screen">⛶ OPEN</button>' +
     '<button type="button" class="back-top" title="Back to the Public Areas dashboard">↑ TOP</button></div></div>' +
@@ -2227,7 +2227,7 @@ function venueCard(v) {
     '<span class="vbadge src" title="Source">SOURCE: ' + esc(v.source || 'not set') + '</span></div>' + (!v.size || !v.source ? '<div class="meta" style="color:#ffe7b3;margin-top:6px">TV size / qty / source not filled in yet — update this row in the Public Area TVs sheet.</div>' : '') +
     '<section class="tv-checklist"><h3>Checklist' + (v.qty > 1 ? ' — all ' + v.qty + ' TVs' : '') + '</h3>' +
     VENUE_CHECKS.map(k => { const lk = lockedFor(v.checks[k], v.locked);
-      return '<label class="check' + (k === 'Held Up' ? ' heldup' : '') + '"><input type="checkbox" data-vfield="' + esc(k) + '"' + (v.checks[k] ? ' checked' : '') + (lk ? ' disabled data-locked title="Locked by Julius L"' : '') + '><span>' + esc(k) + '</span><small>' + (v.checks[k] ? (lk ? 'YES 🔒' : 'YES') : '') + '</small></label>'; }).join('') +
+      return '<label class="check' + (k === 'Held Up' ? ' heldup' : '') + '"><input type="checkbox" data-vfield="' + esc(k) + '"' + (v.checks[k] ? ' checked' : '') + (lk ? ' disabled data-locked title="Locked by Admin"' : '') + '><span>' + esc(k) + '</span><small>' + (v.checks[k] ? (lk ? 'YES 🔒' : 'YES') : '') + '</small></label>'; }).join('') +
     '</section>' +
     '<label class="remarks">Remarks<textarea data-vremarks maxlength="2000" placeholder="Issues, parts needed, why it is held up…">' + esc(v.remarks || '') + '</textarea></label>' +
     (canAssignVenues() ? '<label class="assign">Assigned Technician<select data-vassign><option value="">Unassigned</option>' + TECHS.map(t => '<option' + (t === v.assignedTo ? ' selected' : '') + '>' + esc(t) + '</option>').join('') + '</select></label>'
@@ -2316,7 +2316,7 @@ function saveVenueCard(a, done) {
   }).saveVenue(data);
 }
 function removePendingVenue(id) { const k = 'VENUE:' + String(id || '').toUpperCase(); pendingQueue = pendingQueue.filter(x => pendingKeyOf(x) !== k); writePending(); }
-// ---------------------------------------------------------------- checklist lock (Julius L)
+// ---------------------------------------------------------------- checklist lock (Admin)
 function updateLockUi() {
   const admin = isAdmin();
   $('lockPanel').hidden = !admin;
@@ -2324,9 +2324,9 @@ function updateLockUi() {
   $('lockNote').hidden = !(lockTicked && editorUnlocked && !admin);
   document.querySelectorAll('[data-vadmin]').forEach(el => { el.hidden = !admin; });
 }
-/** Julius L: lock / unlock chosen cabins. items = [{cabin, cabinType}] */
+/** Admin: lock / unlock chosen cabins. items = [{cabin, cabinType}] */
 function setCabinLockFor(items, on, single) {
-  if (!isAdmin() || !authToken) { msg('Only Julius L can lock cabins.', 'error'); return; }
+  if (!isAdmin() || !authToken) { msg('Only Admin can lock cabins.', 'error'); return; }
   if (!items.length) { msg('Select one or more cabins first.', 'error'); return; }
   if (!single && !confirm((on ? 'Lock ' : 'Unlock ') + items.length + ' cabin(s)?' + (on ? '\nOther technicians will not be able to untick items already saved as YES on these cabins.' : ''))) return;
   google.script.run.withSuccessHandler(r => {
@@ -2339,9 +2339,9 @@ function setCabinLockFor(items, on, single) {
   }).withFailureHandler(e => { msg('Lock change failed: ' + errText(e), 'error'); syncLockBadges(); })
     .setCabinLocks(authToken, sessionId, items, !!on);
 }
-/** Julius L: lock / unlock public-area locations by ID. */
+/** Admin: lock / unlock public-area locations by ID. */
 function setVenueLockFor(ids, on, single) {
-  if (!isAdmin() || !authToken) { msg('Only Julius L can lock locations.', 'error'); return; }
+  if (!isAdmin() || !authToken) { msg('Only Admin can lock locations.', 'error'); return; }
   if (!ids.length) { msg('No locations are shown.', 'error'); return; }
   if (!single && !confirm((on ? 'Lock ' : 'Unlock ') + ids.length + ' location(s)?')) return;
   google.script.run.withSuccessHandler(r => {
@@ -2394,11 +2394,11 @@ function setView(view) {
   const v = view === 'venues' ? 'venues' : 'cabins';
   document.body.classList.toggle('view-venues', v === 'venues');
   document.querySelectorAll('.viewSwitch [data-view]').forEach(b => { b.classList.toggle('active', b.dataset.view === v); b.setAttribute('aria-selected', b.dataset.view === v ? 'true' : 'false'); });
-  try { localStorage.setItem('nclEscapeTrackerView', v); } catch (_) {}
+  try { localStorage.setItem('cabinTvTrackerView', v); } catch (_) {}
 }
 function initVenues() {
   document.querySelectorAll('.viewSwitch [data-view]').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
-  let saved = 'cabins'; try { saved = localStorage.getItem('nclEscapeTrackerView') || 'cabins'; } catch (_) {}
+  let saved = 'cabins'; try { saved = localStorage.getItem('cabinTvTrackerView') || 'cabins'; } catch (_) {}
   setView(saved);
   ['vSearch'].forEach(id => $(id).addEventListener('input', () => renderVenues(true)));
   ['vDeck','vArea','vSize','vSource','vStatus','vCheck','vCheckState'].forEach(id => $(id).addEventListener('change', () => {
