@@ -48,10 +48,10 @@ const bk = await t.run('backupNow', tok, 's1'); ok(bk && bk.success !== false, '
 const fileId = (JSON.stringify(bk).match(/files\/([0-9a-f-]{36})\.xlsx/) || [])[1];
 if (fileId) { const fr = await t.req('/files/' + fileId + '.xlsx'); const b = Buffer.from(await fr.arrayBuffer()); writeFileSync(out('backup.xlsx'), b); ok(fr.status === 200 && b.length > 1000, 'backup downloads as .xlsx (' + Math.round(b.length/1024) + ' KB)'); }
 else ok(false, 'backup link present');
-const trig = JSON.parse(t.mod.RT.props.get('__TRIGGERS') || '[]'); ok(trig.some(x => x.handler === 'processTrackerEmailQueue') && trig.some(x => x.handler === 'nightlyMaintenance'), 'triggers installed: ' + trig.map(x => x.handler + '/' + x.unit + (x.atHour != null ? '@' + x.atHour : '')).join(', '));
+const trig = JSON.parse(t.mod.M.props.get('__TRIGGERS') || '[]'); ok(trig.some(x => x.handler === 'processTrackerEmailQueue') && trig.some(x => x.handler === 'nightlyMaintenance'), 'triggers installed: ' + trig.map(x => x.handler + '/' + x.unit + (x.atHour != null ? '@' + x.atHour : '')).join(', '));
 r = await t.req('/__cron', { method: 'POST' }); ok(r.status === 200, 'cron runs: ' + await r.text());
 // "eviction": brand-new instance must see the same data
-t.mod.RT.main = null; t.mod.RT.props = null; t.mod.RT.cache.clear();
+// (new module instance below = fresh memory)
 const t2 = await load(dbFile);
 const L3 = await t2.run('loginTechnician', 'Admin', 'averylongpassword1', 's9'); ok(L3.success, 'after restart: Admin signs in again');
 const snap3 = await t2.run('getTrackerSnapshot', L3.token); const k = snap3.cabins.find(x => x.cabin === '5001');
@@ -60,13 +60,13 @@ const cl = await t2.run('clearInventory', L3.token, 's9', 'venue', 'DELETE'); ok
 const api = await t2.req('/?api=sheets&key=x'); ok(api.status === 200, 'phone-app API answers (' + (await api.text()).slice(0, 70) + ')');
 // scheduled jobs: pretend the email-queue job last ran 2 minutes ago, and it is 23:00 ship time for the nightly job
 {
-  const P = t2.mod.RT.props, list = JSON.parse(P.get('__TRIGGERS') || '[]');
+  const P = t2.mod.M.props, list = JSON.parse(P.get('__TRIGGERS') || '[]');
   ok(list.some(x => x.handler === 'processTrackerEmailQueue') && list.some(x => x.handler === 'nightlyMaintenance') && list.some(x => x.handler === 'dailySummaryEmail'),
     'scheduled jobs set up automatically: ' + list.map(x => x.handler + '(' + x.unit + (x.atHour != null ? ' @' + x.atHour + 'h' : '') + ')').join(', '));
   list.forEach(x => { x.last = Date.now() - 120000; });
   const tz = t2.mod.RT.tz, H = Number(t2.mod.gasFormatDate_(new Date(), tz, 'H'));
   list.forEach(x => { if (x.handler === 'nightlyMaintenance') x.atHour = H; });
-  t2.mod.RT.props.set('__TRIGGERS', JSON.stringify(list));
+  t2.mod.M.props.set('__TRIGGERS', JSON.stringify(list));
   let rr = await t2.req('/__cron', { method: 'POST' }); let ran = (await rr.json()).ran;
   ok(ran.includes('processTrackerEmailQueue') && ran.includes('nightlyMaintenance'), 'cron ran due jobs: ' + ran.join(', '));
   rr = await t2.req('/__cron', { method: 'POST' }); ran = (await rr.json()).ran;

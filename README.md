@@ -71,7 +71,30 @@ get it.
 - Time zone: `TIMEZONE` in `cloudflare/wrangler.toml` (default `UTC`).
 - Phone app: set `API_URL` in `App.js` to the workers.dev link (ending in `/`).
 
-Test locally (Node 22): `cd cloudflare && npm test`.
+**Or: paste it into a "Hello World" Worker (no GitHub secrets, no command line)**
+
+`cloudflare/hello-world.js` is the whole tracker in one file. It keeps its data
+in a **D1 database** instead of a Durable Object, because the dashboard editor
+cannot create Durable Objects.
+1. Workers & Pages → **Create → Start with Hello World** → Deploy.
+2. **Edit code** → select everything in `worker.js` → paste the contents of
+   `cloudflare/hello-world.js` → **Deploy**.
+3. Worker → **Settings → Bindings → Add → D1 database**: variable name `DB`,
+   database `cabin-tv-tracker-db` (create it under Storage & Databases → D1 if
+   it is not there) → Save.
+4. **Settings → Variables and Secrets → Add**: type Secret, name
+   `ADMIN_SETUP_KEY`, a long secret. Optional: text variable `TIMEZONE`.
+5. **Settings → Trigger events → Add → Cron triggers**: `* * * * *` (every
+   minute; runs the email queue, nightly backup and daily summary).
+6. Open `https://<worker-name>.<subdomain>.workers.dev/setup`, set the Admin
+   password, then open the link without `/setup` and sign in.
+
+Every Worker copy keeps the data in memory, reads only the rows that changed
+since its last request, and saves with one guarded batch. If two people save
+at the same moment, the second save is re-run on the new data, so nothing is
+overwritten. To update later, paste the new `cloudflare/hello-world.js` again.
+
+Test locally (Node 22): `cd cloudflare && npm test` (Durable Object and D1 versions).
 
 ### Open it on iPhone and Android
 The web app works in the phone's browser; no app store install is needed.

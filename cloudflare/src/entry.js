@@ -1,118 +1,65 @@
 // ============================================================================================
-// Cloudflare Worker entry. All tracker data lives in ONE Durable Object ("main") with SQLite storage.
-//   GET  /                 the tracker web app (doGet)        GET/POST /?api=…  phone app API (doGet/doPost)
-//   GET  /setup            Admin password page (replaces the spreadsheet menu)
-//   POST /api/run          google.script.run calls from the page: { fn, args } -> { result } | { error }
-//   GET  /files/<id>.xlsx  backup copies made by the nightly backup / "Back up now"
-//   cron (every minute)    time triggers: email queue, nightly backup + clean-up, daily summary
+// Cloudflare Worker entry (wrangler deploy). All tracker data lives in ONE Durable Object ("main")
+// with SQLite storage: synchronous, one request at a time, so nothing can clash.
 // ============================================================================================
 
-// Functions the browser may not call (spreadsheet menu items, triggers, page handlers).
-const BLOCKED_FUNCTIONS_ = new Set(['doGet', 'doPost', 'onOpen', 'onEdit', 'onInstall', 'onChange', 'handleTrackerChange',
-  'setup', 'nightlyMaintenance', 'processTrackerEmailQueue', 'dailySummaryEmail', 'include']);
-function callable_(name) {
-  return typeof name === 'string' && /^[A-Za-z][A-Za-z0-9]*$/.test(name) && !BLOCKED_FUNCTIONS_.has(name) &&
-    !/FromMenu$/.test(name) && Object.prototype.hasOwnProperty.call(GAS_FUNCTIONS_, name) && typeof GAS_FUNCTIONS_[name] === 'function';
+function doSchema_(sql) {
+  sql.exec(`CREATE TABLE IF NOT EXISTS gs_props (k TEXT PRIMARY KEY, v TEXT)`);
+  sql.exec(`CREATE TABLE IF NOT EXISTS gs_sheets (name TEXT PRIMARY KEY, pos INTEGER, meta TEXT)`);
+  sql.exec(`CREATE TABLE IF NOT EXISTS gs_rows (sheet TEXT, r INTEGER, data TEXT, PRIMARY KEY (sheet, r))`);
+  sql.exec(`CREATE TABLE IF NOT EXISTS gs_files (id TEXT PRIMARY KEY, name TEXT, folder TEXT, created INTEGER, mime TEXT, parts INTEGER)`);
+  sql.exec(`CREATE TABLE IF NOT EXISTS gs_file_parts (id TEXT, i INTEGER, data TEXT, PRIMARY KEY (id, i))`);
 }
-function callGas_(name, args) {
-  const f = GAS_FUNCTIONS_[name];
-  if (typeof f !== 'function') throw new Error('Script function not found: ' + name);
-  return f.apply(null, args || []);
+function doColdLoad_(sql) {
+  M.sheets.clear(); M.rows.clear(); M.props.clear(); M.files.clear(); M.fileText.clear();
+  for (const r of sql.exec('SELECT name, pos, meta FROM gs_sheets').toArray()) M.sheets.set(r.name, { pos: r.pos, meta: JSON.parse(r.meta || '{}') });
+  for (const r of sql.exec('SELECT k, v FROM gs_props').toArray()) M.props.set(r.k, r.v);
+  for (const r of sql.exec('SELECT id, name, folder, created, mime FROM gs_files').toArray()) M.files.set(r.id, { id: r.id, name: r.name, folder: r.folder, created: r.created, mime: r.mime });
+  BACKEND.syncLoadSheet = name => {
+    const arr = [];
+    for (const r of sql.exec('SELECT r, data FROM gs_rows WHERE sheet = ? ORDER BY r', name).toArray()) arr[r.r] = decRow_(r.data);
+    for (let i = 0; i < arr.length; i++) if (!arr[i]) arr[i] = [];
+    M.rows.set(name, arr);
+  };
+  BACKEND.syncLoadFile = id => M.fileText.set(id, sql.exec('SELECT data FROM gs_file_parts WHERE id = ? ORDER BY i', id).toArray().map(r => r.data).join(''));
+  M.ready = true;
 }
-function json_(obj, status) {
-  return new Response(JSON.stringify(obj), { status: status || 200, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' } });
-}
-function htmlPage_(out) {
-  let html = out.getContent().split('__SERVICE_URL__').join(RT.origin + '/');
-  const head = [];
-  if (out.getTitle && out.getTitle() && !/<title>/i.test(html)) head.push('<title>' + xmlEsc_(out.getTitle()) + '</title>');
-  (out._meta || []).forEach(([n, c]) => { if (!new RegExp('<meta[^>]+name=["\']' + n + '["\']', 'i').test(html)) head.push('<meta name="' + xmlEsc_(n) + '" content="' + xmlEsc_(c) + '">'); });
-  if (head.length) html = /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, m => m + head.join('')) : head.join('') + html;
-  return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store',
-    'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'same-origin' } });
-}
-function eventFrom_(url, body, contentType) {
-  const parameter = {}, parameters = {};
-  url.searchParams.forEach((v, k) => { if (!(k in parameter)) parameter[k] = v; (parameters[k] = parameters[k] || []).push(v); });
-  if (body && /application\/x-www-form-urlencoded/i.test(contentType || '')) {
-    new URLSearchParams(body).forEach((v, k) => { if (!(k in parameter)) parameter[k] = v; (parameters[k] = parameters[k] || []).push(v); });
-  }
-  const e = { parameter, parameters, queryString: url.search.replace(/^\?/, ''), contextPath: '', contentLength: body ? body.length : -1, pathInfo: '' };
-  if (body != null) e.postData = { contents: body, type: contentType || '', length: body.length, name: 'postData' };
-  return e;
-}
-function respondOutput_(out) {
-  if (out instanceof GTextOutput_) return new Response(out.getContent(), { headers: { 'Content-Type': out.getMimeType() + '; charset=utf-8', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' } });
-  if (out instanceof GHtmlOutput_) return htmlPage_(out);
-  return json_(out === undefined ? null : out);
+const DO_PART_SIZE_ = 900000;
+function doCommit_(sql, j) {
+  j.drop.forEach(n => { sql.exec('DELETE FROM gs_rows WHERE sheet = ?', n); sql.exec('DELETE FROM gs_sheets WHERE name = ?', n); });
+  j.sheets.forEach((s, n) => sql.exec('INSERT OR REPLACE INTO gs_sheets (name, pos, meta) VALUES (?, ?, ?)', n, s.pos, JSON.stringify(s.meta)));
+  j.rows.forEach((rows, n) => rows.forEach((row, r) => {
+    if (row === null) sql.exec('DELETE FROM gs_rows WHERE sheet = ? AND r = ?', n, r);
+    else sql.exec('INSERT OR REPLACE INTO gs_rows (sheet, r, data) VALUES (?, ?, ?)', n, r, encRow_(row));
+  }));
+  if (j.propsClear) sql.exec('DELETE FROM gs_props');
+  j.props.forEach((v, k) => { if (v === null) sql.exec('DELETE FROM gs_props WHERE k = ?', k); else sql.exec('INSERT OR REPLACE INTO gs_props (k, v) VALUES (?, ?)', k, v); });
+  j.files.forEach((m, id) => {
+    if (m === null) { sql.exec('DELETE FROM gs_file_parts WHERE id = ?', id); sql.exec('DELETE FROM gs_files WHERE id = ?', id); return; }
+    sql.exec('INSERT OR REPLACE INTO gs_files (id, name, folder, created, mime, parts) VALUES (?, ?, ?, ?, ?, 0)', id, m.name, m.folder, m.created, m.mime);
+  });
+  j.fileText.forEach((t, id) => {
+    if (!j.files.get(id)) return;
+    sql.exec('DELETE FROM gs_file_parts WHERE id = ?', id);
+    const parts = Math.max(1, Math.ceil(t.length / DO_PART_SIZE_));
+    for (let i = 0; i < parts; i++) sql.exec('INSERT INTO gs_file_parts (id, i, data) VALUES (?, ?, ?)', id, i, t.slice(i * DO_PART_SIZE_, (i + 1) * DO_PART_SIZE_));
+  });
+  applyJournal_(j);   // cache entries live in memory only (this object is the only instance)
 }
 
 export class TrackerStore extends DurableObject {
-  constructor(ctx, env) { super(ctx, env); this.ctx = ctx; this.env = env; }
+  constructor(ctx, env) { super(ctx, env); this.ctx = ctx; this.env = env; doSchema_(ctx.storage.sql); doColdLoad_(ctx.storage.sql); }
 
   async fetch(request) {
     const url = new URL(request.url);
     const body = request.method === 'POST' ? await request.text() : null;   // read before any tracker code runs
-    shimInit_(this.ctx.storage.sql, this.env);
-    RT.origin = request.headers.get('x-tracker-origin') || RT.origin || url.origin;
-    RT.temp.clear();
-    // First visit after deploy: run setup() once (creates the sheets and the scheduled jobs). Apps Script needs this by hand.
-    if (!RT.props.has('__CF_SETUP_DONE')) {
-      try { callGas_('setup', []); } catch (err) { console.warn('setup(): ' + (err && err.stack || err)); }
-      scriptProperties_.setProperty('__CF_SETUP_DONE', new Date().toISOString());
-      shimFlush_();
-    }
-    let res;
-    try { res = this._route(url, request, body); }
-    catch (err) { console.error(err && err.stack || err); res = json_({ error: String(err && err.message || err) }, 500); }
-    finally { try { shimFlush_(); } catch (err) { console.error('Save failed: ' + (err && err.stack || err)); } RT.temp.clear(); }
-    if (RT.outbox.length) await sendOutbox_();
-    return res;
-  }
-
-  _route(url, request, body) {
-    const path = url.pathname;
-    if (path === '/__cron') return json_({ ran: runDueTriggers_(Date.now(), (h, e) => callGas_(h, [e])) });
-
-    if (path === '/api/run') {
-      if (request.method !== 'POST') return json_({ error: 'Use POST.' }, 405);
-      let msg;
-      try { msg = JSON.parse(body || '{}'); } catch (_) { return json_({ error: 'Bad request.' }, 400); }
-      if (!callable_(msg.fn)) return json_({ error: 'Script function not found: ' + String(msg.fn).slice(0, 60) });
-      try {
-        const result = callGas_(msg.fn, Array.isArray(msg.args) ? msg.args : []);
-        return json_({ result: result === undefined ? null : result });
-      } catch (err) {
-        console.warn(msg.fn + ': ' + (err && err.stack || err));
-        return json_({ error: String(err && err.message || err) });
-      }
-    }
-
-    if (path === '/setup') {
-      const out = HtmlService.createHtmlOutputFromFile('PasswordSetup').setTitle('Tracker — Admin Password Setup');
-      out.addMetaTag('viewport', 'width=device-width, initial-scale=1');
-      return htmlPage_(out);
-    }
-
-    const file = path.match(/^\/files\/([0-9a-f-]{36})\.xlsx$/i);
-    if (file) {
-      const row = fileRow_(file[1]);
-      if (!row) return new Response('Not found', { status: 404 });
-      const text = readFileText_(row.id);
-      const bytes = row.mime === 'application/x-tracker-snapshot' ? xlsxFromSnapshot_(text) : b64dec_(JSON.parse(text).blob || '');
-      const name = String(row.name || 'backup').replace(/[^\w .()-]+/g, '_') + '.xlsx';
-      return new Response(bytes, { headers: { 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'Content-Disposition': 'attachment; filename="' + name + '"', 'Cache-Control': 'no-store' } });
-    }
-
-    if (path === '/' || path === '/exec' || path === '/index.html') {
-      const e = eventFrom_(url, body, request.headers.get('content-type'));
-      if (request.method === 'POST') {
-        if (typeof GAS_FUNCTIONS_.doPost !== 'function') return json_({ error: 'POST is not supported.' }, 405);
-        return respondOutput_(GAS_FUNCTIONS_.doPost(e));
-      }
-      return respondOutput_(GAS_FUNCTIONS_.doGet(e));
-    }
-    return new Response('Not found', { status: 404 });
+    const origin = request.headers.get('x-tracker-origin') || url.origin;
+    const out = runOnce_(this.env, origin, url, request.method, request.headers.get('content-type'), body);
+    if (out.need) return json_({ error: 'Data not available: ' + JSON.stringify(out.need) }, 500);   // cannot happen with synchronous loading
+    try { if (!journalEmpty_(out.journal)) doCommit_(this.ctx.storage.sql, out.journal); }
+    catch (err) { console.error('Save failed: ' + (err && err.stack || err)); doColdLoad_(this.ctx.storage.sql); return json_({ error: 'Save failed: ' + String(err && err.message || err) }, 500); }
+    if (out.mail.length) await sendOutbox_(out.mail);
+    return out.res;
   }
 }
 

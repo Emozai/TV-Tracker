@@ -6,34 +6,27 @@
 // Everything is synchronous, like Apps Script: a Durable Object's SQLite storage is synchronous.
 // ============================================================================================
 
-/** Runtime context, set by the Durable Object for every request. */
+/** Per-request runtime context. */
 const RT = {
-  sql: null,            // ctx.storage.sql
   env: {},              // Worker env (vars + secrets)
   origin: '',           // https://your-worker.workers.dev
   tz: 'UTC',
-  props: null,          // Map, loaded once from SQLite
-  cache: new Map(),     // key -> { v, exp }
-  main: null,           // the tracker spreadsheet (persisted)
+  main: null,           // the tracker spreadsheet, a working copy over M for this request
   temp: new Map(),      // id -> temporary spreadsheet (exports)
   outbox: [],           // emails to send after the request
-  files: null           // DriveApp folder / file metadata cache
+  needed: []            // D1: data the request asked for that was not loaded yet
 };
 
-function shimInit_(sql, env) {
-  RT.sql = sql;
+/** Starts a request (or a re-run of it): fresh journal and working copy. */
+function shimBegin_(env, origin) {
   RT.env = env || {};
   RT.tz = String(RT.env.TIMEZONE || 'UTC');
-  sql.exec(`CREATE TABLE IF NOT EXISTS gs_props (k TEXT PRIMARY KEY, v TEXT)`);
-  sql.exec(`CREATE TABLE IF NOT EXISTS gs_sheets (name TEXT PRIMARY KEY, pos INTEGER, meta TEXT)`);
-  sql.exec(`CREATE TABLE IF NOT EXISTS gs_rows (sheet TEXT, r INTEGER, data TEXT, PRIMARY KEY (sheet, r))`);
-  sql.exec(`CREATE TABLE IF NOT EXISTS gs_files (id TEXT PRIMARY KEY, name TEXT, folder TEXT, created INTEGER, mime TEXT, parts INTEGER)`);
-  sql.exec(`CREATE TABLE IF NOT EXISTS gs_file_parts (id TEXT, i INTEGER, data TEXT, PRIMARY KEY (id, i))`);
-  if (!RT.props) {
-    RT.props = new Map();
-    for (const row of sql.exec('SELECT k, v FROM gs_props').toArray()) RT.props.set(row.k, row.v);
-  }
-  if (!RT.main) RT.main = new GSpreadsheet_('main', 'Cabin TV Tracker', true);
+  if (origin) RT.origin = origin;
+  RT.temp = new Map();
+  RT.outbox = [];
+  RT.needed = [];
+  J = journalNew_();
+  RT.main = new GSpreadsheet_('main', 'Cabin TV Tracker', true);
 }
 
 // --------------------------------------------------------------------------------------------
@@ -78,16 +71,16 @@ function chainable_(target) {
 
 class GSpreadsheet_ {
   constructor(id, name, persisted) {
-    this._id = id; this._name = name; this._persisted = persisted; this._sheets = null;
+    this._id = id; this._name = name; this._persisted = persisted; this._sheets = null; this._dropped = new Set(); this._orderDirty = false;
     return chainable_(this);
   }
   _load() {
     if (this._sheets) return;
     this._sheets = [];
     if (!this._persisted) return;
-    const metas = RT.sql.exec('SELECT name, pos, meta FROM gs_sheets ORDER BY pos').toArray();
-    for (const m of metas) {
-      const sh = new GSheet_(this, m.name, JSON.parse(m.meta || '{}'));
+    for (const m of ST_.sheetList()) {
+      const sh = new GSheet_(this, m.name, JSON.parse(JSON.stringify(m.meta || {})));
+      sh._known = true;
       this._sheets.push(sh);
     }
   }
@@ -103,7 +96,7 @@ class GSpreadsheet_ {
     name = name == null ? 'Sheet' + (this._sheets.length + 1) : String(name);
     if (this.getSheetByName(name)) throw new Error('A sheet with the name "' + name + '" already exists. Please enter another name.');
     const sh = new GSheet_(this, name, {});
-    sh._rows = []; sh._loaded = true; sh._metaDirty = true;
+    sh._rows = []; sh._loaded = true; sh._isNew = true;
     if (typeof index === 'number' && index >= 0 && index <= this._sheets.length) this._sheets.splice(index, 0, sh);
     else this._sheets.push(sh);
     this._orderDirty = true;
@@ -111,26 +104,25 @@ class GSpreadsheet_ {
   }
   deleteSheet(sheet) {
     this._load();
-    const i = this._sheets.indexOf(sheet && sheet._self ? sheet._self : sheet);
-    const target = i >= 0 ? this._sheets[i] : this._sheets.find(s => s._name === (sheet && sheet.getName && sheet.getName()));
+    const raw = sheet && sheet._self ? sheet._self : sheet;
+    const target = this._sheets.find(s => s === raw) || this._sheets.find(s => s._name === (sheet && sheet.getName && sheet.getName()));
     if (!target) return;
     this._sheets.splice(this._sheets.indexOf(target), 1);
-    if (this._persisted) {
-      RT.sql.exec('DELETE FROM gs_rows WHERE sheet = ?', target._name);
-      RT.sql.exec('DELETE FROM gs_sheets WHERE name = ?', target._name);
-    }
+    if (target._known) this._dropped.add(target._name);
     this._orderDirty = true;
   }
   toast() { return this; }
-  _flush() {
+  /** Moves this request's sheet changes into the journal J (nothing is written yet). */
+  _stage() {
     if (!this._persisted || !this._sheets) return;
+    this._dropped.forEach(n => { if (!this._sheets.some(s => s._name === n && s._known)) J.drop.add(n); });
     this._sheets.forEach((sh, pos) => {
-      if (sh._metaDirty || this._orderDirty) {
-        RT.sql.exec('INSERT OR REPLACE INTO gs_sheets (name, pos, meta) VALUES (?, ?, ?)', sh._name, pos, JSON.stringify(sh._meta));
-        sh._metaDirty = false;
-      }
-      sh._flushRows();
+      const m = M.sheets.get(sh._name);
+      if (sh._isNew || sh._metaDirty || this._orderDirty || !m || m.pos !== pos) J.sheets.set(sh._name, { pos, meta: JSON.parse(JSON.stringify(sh._meta)) });
+      sh._stageRows();
+      sh._metaDirty = false; sh._isNew = false; sh._known = true;
     });
+    this._dropped.clear();
     this._orderDirty = false;
   }
 }
@@ -138,30 +130,32 @@ class GSpreadsheet_ {
 class GSheet_ {
   constructor(ss, name, meta) {
     this._ss = ss; this._name = name; this._meta = Object.assign({ formats: {}, frozen: 0 }, meta || {});
-    this._rows = null; this._loaded = false; this._dirty = new Set(); this._dims = null; this._self = this;
+    this._rows = null; this._loaded = false; this._dirty = new Set(); this._owned = new Set(); this._dims = null; this._self = this;
+    this._isNew = false; this._known = false;
     return chainable_(this);
   }
   _load() {
     if (this._loaded) return;
-    this._rows = [];
-    if (this._ss._persisted) {
-      for (const row of RT.sql.exec('SELECT r, data FROM gs_rows WHERE sheet = ? ORDER BY r', this._name).toArray()) {
-        this._rows[row.r] = decRow_(row.data);
-      }
-    }
+    // Working copy: the row arrays are shared with M until a row is changed (then it is copied).
+    this._rows = this._ss._persisted && this._known ? ST_.sheetRows(this._name).slice() : [];
     for (let i = 0; i < this._rows.length; i++) if (!this._rows[i]) this._rows[i] = [];
     this._loaded = true;
   }
+  _own(r) {
+    if (!this._owned.has(r)) { this._rows[r] = this._rows[r] ? this._rows[r].slice() : []; this._owned.add(r); }
+    return this._rows[r];
+  }
   _touch(r) { this._dirty.add(r); this._dims = null; }
-  _flushRows() {
-    if (!this._loaded || !this._dirty.size || !this._ss._persisted) { this._dirty.clear(); return; }
+  _stageRows() {
+    if (!this._loaded) return;
+    if (this._isNew) { for (let r = 0; r < this._rows.length; r++) this._dirty.add(r); }
+    if (!this._dirty.size) return;
+    let jr = J.rows.get(this._name);
+    if (!jr) { jr = new Map(); J.rows.set(this._name, jr); }
     for (const r of this._dirty) {
       const row = this._rows[r];
-      if (!row || !row.some(v => !isBlank_(v))) RT.sql.exec('DELETE FROM gs_rows WHERE sheet = ? AND r = ?', this._name, r);
-      else {
-        let n = row.length; while (n > 0 && isBlank_(row[n - 1])) n--;
-        RT.sql.exec('INSERT OR REPLACE INTO gs_rows (sheet, r, data) VALUES (?, ?, ?)', this._name, r, encRow_(row.slice(0, n)));
-      }
+      if (!row || !row.some(v => !isBlank_(v))) jr.set(r, null);
+      else { let n = row.length; while (n > 0 && isBlank_(row[n - 1])) n--; jr.set(r, row.slice(0, n)); }
     }
     this._dirty.clear();
   }
@@ -180,8 +174,8 @@ class GSheet_ {
   }
   _get(r, c) { const row = this._rows[r]; return row ? row[c] : undefined; }
   _set(r, c, v) {
-    while (this._rows.length <= r) this._rows.push([]);
-    const row = this._rows[r] || (this._rows[r] = []);
+    while (this._rows.length <= r) { this._rows.push([]); this._owned.add(this._rows.length - 1); }
+    const row = this._own(r);
     while (row.length < c) row.push('');
     row[c] = v;
     this._touch(r);
@@ -192,9 +186,8 @@ class GSheet_ {
     if (name === this._name) return this;
     if (this._ss._persisted) {
       this._load();
-      RT.sql.exec('DELETE FROM gs_rows WHERE sheet = ?', this._name);
-      RT.sql.exec('DELETE FROM gs_sheets WHERE name = ?', this._name);
-      for (let r = 0; r < this._rows.length; r++) this._dirty.add(r);
+      if (this._known) this._ss._dropped.add(this._name);
+      this._isNew = true; this._known = false; this._ss._orderDirty = true;
     }
     this._name = name; this._metaDirty = true;
     return this;
@@ -221,9 +214,20 @@ class GSheet_ {
     if (!values.length) this._touch(r);
     return this;
   }
-  deleteRows(start, n) { this._load(); this._rows.splice(start - 1, n); this._markAllFrom(start - 1, n); return this; }
+  deleteRows(start, n) { this._load(); this._rows.splice(start - 1, n); this._reindexOwned(start - 1, -n); this._markAllFrom(start - 1, n); return this; }
   deleteRow(r) { return this.deleteRows(r, 1); }
-  insertRows(before, n) { this._load(); n = n || 1; const add = []; for (let i = 0; i < n; i++) add.push([]); this._rows.splice(before - 1, 0, ...add); this._markAllFrom(before - 1, 0); return this; }
+  insertRows(before, n) {
+    this._load(); n = n || 1;
+    const add = []; for (let i = 0; i < n; i++) add.push([]);
+    this._rows.splice(before - 1, 0, ...add); this._reindexOwned(before - 1, n);
+    for (let i = 0; i < n; i++) this._owned.add(before - 1 + i);
+    this._markAllFrom(before - 1, 0); return this;
+  }
+  _reindexOwned(from, delta) {
+    const next = new Set();
+    this._owned.forEach(r => { if (r < from) next.add(r); else if (delta > 0) next.add(r + delta); else if (r >= from - delta) next.add(r + delta); });
+    this._owned = next;
+  }
   insertRowBefore(r) { return this.insertRows(r, 1); }
   insertRowAfter(r) { return this.insertRows(r + 1, 1); }
   insertRowsAfter(r, n) { return this.insertRows(r + 1, n); }
@@ -232,11 +236,11 @@ class GSheet_ {
     const end = this._rows.length + (removed || 0) + 1;
     for (let r = Math.max(0, from); r < end; r++) this._touch(r);
   }
-  deleteColumn(c) { this._load(); this._rows.forEach((row, r) => { if (row && row.length >= c) { row.splice(c - 1, 1); this._touch(r); } }); return this; }
-  insertColumnAfter(c) { this._load(); this._rows.forEach((row, r) => { if (row && row.length > c) { row.splice(c, 0, ''); this._touch(r); } }); return this; }
+  deleteColumn(c) { this._load(); this._rows.forEach((row, r) => { if (row && row.length >= c) { this._own(r).splice(c - 1, 1); this._touch(r); } }); return this; }
+  insertColumnAfter(c) { this._load(); this._rows.forEach((row, r) => { if (row && row.length > c) { this._own(r).splice(c, 0, ''); this._touch(r); } }); return this; }
   insertColumnBefore(c) { return this.insertColumnAfter(c - 1); }
   insertColumnsAfter(c, n) { for (let i = 0; i < n; i++) this.insertColumnAfter(c); return this; }
-  clear() { this._load(); for (let r = 0; r < this._rows.length; r++) this._touch(r); this._rows = []; return this; }
+  clear() { this._load(); for (let r = 0; r < this._rows.length; r++) this._touch(r); this._rows = []; this._owned = new Set(); return this; }
   clearContents() { return this.clear(); }
   getSheetValues(r, c, nr, nc) { return this.getRange(r, c, nr, nc).getValues(); }
   sort(col, asc) { this.getRange(2, 1, Math.max(1, this.getLastRow() - 1), Math.max(1, this.getLastColumn())).sort({ column: col, ascending: asc !== false }); return this; }
@@ -385,8 +389,8 @@ const SpreadsheetApp = new Proxy({
   newRichTextValue() { const b = new Proxy({}, { get: () => () => b }); return b; }
 }, { get(t, p) { if (p in t) return t[p]; return new Proxy({}, { get: (_, k) => String(k) }); } });   // enums (BorderStyle.SOLID …)
 
-/** Writes changed rows / sheets / properties to SQLite. Called after every request and on SpreadsheetApp.flush(). */
-function shimFlush_() { if (RT.main) RT.main._flush(); }
+/** Moves sheet changes into the journal. The backend commits the journal at the end of the request. */
+function shimFlush_() { if (RT.main) RT.main._stage(); }
 
 // --------------------------------------------------------------------------------------------
 // PropertiesService / CacheService / LockService
@@ -395,20 +399,21 @@ const ENV_PROPERTIES_ = { TRACKER_ADMIN_SETUP_KEY: 'ADMIN_SETUP_KEY' };
 const scriptProperties_ = {
   getProperty(k) {
     k = String(k);
-    if (RT.props.has(k)) return RT.props.get(k);
+    const v = ST_.propGet(k);
+    if (v !== null) return v;
     const envName = ENV_PROPERTIES_[k];
     return envName && RT.env[envName] ? String(RT.env[envName]) : null;
   },
-  setProperty(k, v) { k = String(k); v = String(v); RT.props.set(k, v); RT.sql.exec('INSERT OR REPLACE INTO gs_props (k, v) VALUES (?, ?)', k, v); return scriptProperties_; },
-  deleteProperty(k) { k = String(k); RT.props.delete(k); RT.sql.exec('DELETE FROM gs_props WHERE k = ?', k); return scriptProperties_; },
-  getProperties() { const o = {}; RT.props.forEach((v, k) => o[k] = v); return o; },
-  getKeys() { return Array.from(RT.props.keys()); },
+  setProperty(k, v) { ST_.propSet(String(k), String(v)); return scriptProperties_; },
+  deleteProperty(k) { ST_.propDel(String(k)); return scriptProperties_; },
+  getProperties() { return ST_.propsAll(); },
+  getKeys() { return Object.keys(ST_.propsAll()); },
   setProperties(obj, deleteAll) {
     if (deleteAll) scriptProperties_.deleteAllProperties();
     Object.keys(obj || {}).forEach(k => scriptProperties_.setProperty(k, obj[k]));
     return scriptProperties_;
   },
-  deleteAllProperties() { RT.props.clear(); RT.sql.exec('DELETE FROM gs_props'); return scriptProperties_; }
+  deleteAllProperties() { ST_.propsClear(); return scriptProperties_; }
 };
 const PropertiesService = {
   getScriptProperties: () => scriptProperties_,
@@ -417,9 +422,9 @@ const PropertiesService = {
 };
 
 const scriptCache_ = {
-  get(k) { const e = RT.cache.get(String(k)); if (!e) return null; if (e.exp < Date.now()) { RT.cache.delete(String(k)); return null; } return e.v; },
-  put(k, v, ttl) { RT.cache.set(String(k), { v: String(v), exp: Date.now() + Math.min(21600, Number(ttl) || 600) * 1000 }); },
-  remove(k) { RT.cache.delete(String(k)); },
+  get(k) { return ST_.cacheGet(String(k)); },
+  put(k, v, ttl) { ST_.cachePut(String(k), String(v), Date.now() + Math.min(21600, Number(ttl) || 600) * 1000); },
+  remove(k) { ST_.cacheDel(String(k)); },
   getAll(keys) { const o = {}; (keys || []).forEach(k => { const v = scriptCache_.get(k); if (v !== null) o[k] = v; }); return o; },
   putAll(obj, ttl) { Object.keys(obj || {}).forEach(k => scriptCache_.put(k, obj[k], ttl)); },
   removeAll(keys) { (keys || []).forEach(k => scriptCache_.remove(k)); }
@@ -716,31 +721,23 @@ function runDueTriggers_(now, call) {
 // --------------------------------------------------------------------------------------------
 // DriveApp: backup copies of the tracker are kept in SQLite (split in parts), downloadable as .xlsx.
 // --------------------------------------------------------------------------------------------
-const FILE_PART_SIZE_ = 900000;
 function snapshotOf_(ss) {
   return JSON.stringify(ss.getSheets().map(sh => {
     const s = sh._self || sh; s._load();
     return { name: s._name, rows: s._rows.map(r => r ? JSON.parse(encRow_(r)) : []) };
   }));
 }
-function saveFile_(id, name, folder, mime, text) {
-  const parts = Math.max(1, Math.ceil(text.length / FILE_PART_SIZE_));
-  RT.sql.exec('INSERT OR REPLACE INTO gs_files (id, name, folder, created, mime, parts) VALUES (?, ?, ?, ?, ?, ?)', id, name, folder, Date.now(), mime, parts);
-  RT.sql.exec('DELETE FROM gs_file_parts WHERE id = ?', id);
-  for (let i = 0; i < parts; i++) RT.sql.exec('INSERT INTO gs_file_parts (id, i, data) VALUES (?, ?, ?)', id, i, text.slice(i * FILE_PART_SIZE_, (i + 1) * FILE_PART_SIZE_));
-}
-function readFileText_(id) {
-  return RT.sql.exec('SELECT data FROM gs_file_parts WHERE id = ? ORDER BY i', id).toArray().map(r => r.data).join('');
-}
-function fileRow_(id) { return RT.sql.exec('SELECT id, name, folder, created, mime FROM gs_files WHERE id = ?', id).toArray()[0] || null; }
+function saveFile_(id, name, folder, mime, text) { ST_.fileSave({ id, name, folder, created: Date.now(), mime }, text); }
+function readFileText_(id) { return ST_.fileText(id); }
+function fileRow_(id) { return ST_.fileMeta(id); }
 function driveFile_(row) {
   return {
-    getId: () => row.id, getName: () => row.name, setName(n) { RT.sql.exec('UPDATE gs_files SET name = ? WHERE id = ?', String(n), row.id); row.name = String(n); return this; },
+    getId: () => row.id, getName: () => row.name, setName(n) { ST_.fileRename(row.id, String(n)); row.name = String(n); return this; },
     getUrl: () => RT.origin + '/files/' + row.id + '.xlsx', getDownloadUrl: () => RT.origin + '/files/' + row.id + '.xlsx',
     getDateCreated: () => new Date(row.created), getLastUpdated: () => new Date(row.created), getMimeType: () => row.mime, getSize: () => 0,
-    setTrashed(b) { if (b) { RT.sql.exec('DELETE FROM gs_file_parts WHERE id = ?', row.id); RT.sql.exec('DELETE FROM gs_files WHERE id = ?', row.id); } return this; },
+    setTrashed(b) { if (b) ST_.fileDelete(row.id); return this; },
     isTrashed: () => false,
-    makeCopy(name) { throw new Error('Only the tracker spreadsheet itself can be copied.'); },
+    makeCopy() { throw new Error('Only the tracker spreadsheet itself can be copied.'); },
     getBlob: () => new GBlob_(readFileText_(row.id), row.mime, row.name)
   };
 }
@@ -748,8 +745,8 @@ function iterator_(arr) { let i = 0; return { hasNext: () => i < arr.length, nex
 function driveFolder_(name) {
   return {
     getId: () => 'folder:' + name, getName: () => name, getUrl: () => RT.origin + '/backups',
-    getFiles: () => iterator_(RT.sql.exec('SELECT id, name, folder, created, mime FROM gs_files WHERE folder = ? ORDER BY created', name).toArray().map(driveFile_)),
-    getFilesByName: n => iterator_(RT.sql.exec('SELECT id, name, folder, created, mime FROM gs_files WHERE folder = ? AND name = ?', name, String(n)).toArray().map(driveFile_)),
+    getFiles: () => iterator_(ST_.fileList(name).map(driveFile_)),
+    getFilesByName: n => iterator_(ST_.fileList(name, String(n)).map(driveFile_)),
     createFile(blobOrName, content, mime) {
       const blob = typeof blobOrName === 'string' ? new GBlob_(content || '', mime || 'text/plain', blobOrName) : blobOrName;
       const id = gasUuid_(); saveFile_(id, blob.getName() || 'file', name, blob.getContentType(), JSON.stringify({ blob: b64enc_(toBytes_(blob.getBytes())) }));
@@ -798,8 +795,8 @@ const MailApp = {
 };
 const GmailApp = { sendEmail: (to, subject, body, opts) => MailApp.sendEmail(to, subject, body, opts) };
 
-async function sendOutbox_() {
-  const list = RT.outbox.splice(0);
+async function sendOutbox_(list) {
+  list = list || RT.outbox.splice(0);
   for (const m of list) {
     const payload = {
       from: (m.name ? m.name + ' <' + RT.env.MAIL_FROM + '>' : RT.env.MAIL_FROM),
