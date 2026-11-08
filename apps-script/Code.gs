@@ -76,6 +76,9 @@ const HEADERS = ['CABIN TYPE','CABIN NO','DECK','FZ','TV installed','Power Conne
 const TV_CHECK_ACCOUNTS = ['TV Check 1','TV Check 2','TV Check 3','TV Check 4','TV Check 5','TV Check 6'];
 const TECHNICIANS = ['Tech 1','Tech 2','Tech 3','Tech 4','Admin'].concat(TV_CHECK_ACCOUNTS);
 const AUTHORIZED_TECHNICIANS = TECHNICIANS.slice();
+// Only these accounts need a password to sign in. Every other account signs in by choosing its name.
+const PASSWORD_ACCOUNTS = ['Admin'];
+function needsPassword_(name) { return PASSWORD_ACCOUNTS.includes(accountName_(name)); }
 const AUTH_CACHE_TTL_SECONDS = 21600; // 6 hours
 const EMAIL_QUEUE_SHEET = 'Tracker Email Queue';
 const ACTIVE_USERS_SHEET = 'Tracker Active Users';
@@ -1185,6 +1188,11 @@ function loginTechnician(username, password, sessionId) {
   const cache = authCache_(), failKey = 'TRACKER_LOGIN_FAIL_' + key, failed = Number(cache.get(failKey) || 0);
   if (failed >= 5) return { success: false, message: 'Too many unsuccessful attempts. Wait 15 minutes before trying again.' };
   const props = PropertiesService.getScriptProperties();
+  if (!needsPassword_(name)) {   // technician accounts: no password
+    const now = Date.now(), token = Utilities.getUuid() + '-' + Utilities.getUuid();
+    props.setProperty(authCacheKey_(token), JSON.stringify({ username: name, sessionId: sid, createdAt: now, lastSeenAt: now }));
+    return { success: true, token: token, username: name };
+  }
   const salt = props.getProperty('TRACKER_USER_' + key + '_SALT'), expected = props.getProperty('TRACKER_USER_' + key + '_HASH');
   if (!salt || !expected) return { success: false, message: 'Password has not been configured for ' + name + '. Ask the tracker administrator to set it.' };
   const fast = readFastHash_(key, expected);

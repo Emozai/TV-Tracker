@@ -19,6 +19,8 @@ tracker starts empty and the admin uploads their own lists.
    Set / Reset Technician Passwords** menu to give each account a password.
    Account names are in `TECHNICIANS` at the top of `Code.gs`; the admin
    account is `Admin`.
+   Only `Admin` needs a password; technicians sign in by choosing their name
+   (change `PASSWORD_ACCOUNTS` in Code.gs and Index.html to require more).
 4. Deploy → New deployment → Web app (Execute as: Me). Open the `/exec` link
    and sign in as the admin.
 5. Open **Upload Cabins & Public Areas**, download the templates, fill them

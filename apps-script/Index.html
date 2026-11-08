@@ -414,8 +414,8 @@ td.wrapcell{white-space:normal;min-width:220px}
   <div class="userpick">
     <label for="activeTech">Technician Account</label>
     <select id="activeTech"><option value="">Select account</option><option>Tech 1</option><option>Tech 2</option><option>Tech 3</option><option>Tech 4</option><option>Admin</option><option>TV Check 1</option><option>TV Check 2</option><option>TV Check 3</option><option>TV Check 4</option><option>TV Check 5</option><option>TV Check 6</option></select>
-    <label for="editCode" style="margin-top:10px">Individual Password</label>
-    <div class="passwordRow">
+    <label for="editCode" id="editCodeLabel" style="margin-top:10px">Admin Password</label>
+    <div class="passwordRow" id="passwordRow">
       <input id="editCode" type="password" autocomplete="current-password" placeholder="Enter your password">
       <button id="togglePassword" class="btn secondary" type="button" aria-pressed="false">Show</button>
       <button id="pastePassword" class="btn secondary" type="button">Paste</button>
@@ -703,6 +703,13 @@ function getStatus(c) {
 function pillClass(st) { return st === 'Fully Configured' ? 'done' : st === 'In Progress' ? 'progress' : ''; }
 function techClass(name) { const n = String(name || '').trim().toLowerCase().replace(/\s+/g, '-'); return TECHS.map(t => t.toLowerCase().replace(/\s+/g, '-')).includes(n) ? 'tech-' + n : 'tech-unassigned'; }
 function chosenTech() { return $('activeTech').value || ''; }
+const PASSWORD_ACCOUNTS = ['Admin']; // must match PASSWORD_ACCOUNTS in Code.gs
+function needsPassword(name) { return PASSWORD_ACCOUNTS.includes(name); }
+function updatePasswordField() {
+  const show = !chosenTech() || needsPassword(chosenTech());
+  $('passwordRow').hidden = !show; $('editCodeLabel').hidden = !show;
+  if (!show) $('editCode').value = '';
+}
 function isAdmin() { return editorUnlocked && chosenTech() === 'Admin'; }
 function msg(text, kind) { const e = $('msg'); e.textContent = text; e.className = 'msg show ' + (kind || 'success'); }
 function setRefreshStatus(t) { $('refreshStatus').textContent = t; }
@@ -1513,7 +1520,7 @@ function signIn() {
   if (typeof google === 'undefined' || !google.script || !google.script.run) { $('identityNote').textContent = 'Open the deployed web-app URL (ending in /exec) to sign in.'; return; }
   const name = chosenTech(), pw = $('editCode').value;
   if (!name) { $('identityNote').textContent = 'Select your account first.'; return; }
-  if (!pw) { $('identityNote').textContent = 'Enter your individual password.'; return; }
+  if (!pw && needsPassword(name)) { $('identityNote').textContent = 'Enter the Admin password.'; return; }
   $('unlockBtn').disabled = true; $('identityNote').textContent = 'Verifying credentials…';
   google.script.run.withSuccessHandler(r => {
     $('unlockBtn').disabled = false;
@@ -2509,6 +2516,8 @@ function init() {
   $('unlockBtn').addEventListener('click', signIn);
   $('editCode').addEventListener('keydown', e => { if (e.key === 'Enter') signIn(); });
   $('logoutBtn').addEventListener('click', () => logout(false));
+  $('activeTech').addEventListener('change', updatePasswordField);
+  updatePasswordField();
   $('activeTech').addEventListener('change', () => { if (editorUnlocked) { logout(false); $('identityNote').textContent = 'Account changed. Sign in again.'; } });
   $('togglePassword').addEventListener('click', () => {
     const f = $('editCode'), show = f.type === 'password';
