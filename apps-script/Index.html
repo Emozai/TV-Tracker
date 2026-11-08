@@ -1,0 +1,2466 @@
+<!doctype html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0A2033">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800&display=swap" rel="stylesheet">
+<title>NCL Escape TV Tracker</title>
+<style>
+:root{
+  --bg:#06172a;--panel:#0d2640;--panel2:#08203a;--line:#24506d;--text:#f2f8fc;--muted:#a9c3d6;
+  --aqua:#19c6c1;--blue:#38bdf8;--violet:#8b5cf6;--gold:#f5b942;--green:#22c55e;--pink:#f472b6;--red:#fb7185;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font-family:Inter,"Segoe UI",Arial,sans-serif;padding-bottom:env(safe-area-inset-bottom)}
+button,input,select,textarea{font:inherit;font-size:16px}
+.wrap{max-width:1600px;margin:0 auto}
+[hidden]{display:none!important}
+/* Offline / pending save banner */
+.offline-panel{max-width:1600px;margin:10px auto 0;padding:10px 16px;border:1px solid var(--gold);border-radius:12px;background:#3b2c0c;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.offline-panel.online{border-color:var(--green);background:#08362a}
+.offline-title{font-weight:900;font-size:12px;letter-spacing:.7px}
+.offline-detail{font-size:11px;color:var(--muted);margin-top:3px}
+/* Header */
+.hero{position:relative;overflow:hidden;background:#0a2033;border-bottom:3px solid var(--aqua);min-height:230px;display:flex;align-items:center}
+.hero-photo{position:absolute;top:0;right:0;bottom:0;width:58%}
+.hero-photo img{width:100%;height:100%;object-fit:cover;object-position:center 43%;display:block}
+.hero:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,#0a2033 0%,rgba(10,32,51,.95) 40%,rgba(10,32,51,.35) 75%,rgba(10,32,51,.1))}
+.hero .wrap{position:relative;z-index:1;width:100%;padding:24px clamp(14px,3vw,32px)}
+.brand{display:flex;align-items:center;gap:14px;max-width:640px}
+.mark{border:1px solid var(--aqua);border-radius:8px;padding:12px 14px;font-weight:900;letter-spacing:1px;color:var(--gold);background:#0c3550;text-align:center;line-height:1.2}
+h1{margin:0;font-size:clamp(22px,3vw,38px);line-height:1.1;text-transform:uppercase}
+h1 span{color:#7ce9ff}
+.tag{margin:8px 0 0;color:#dff4ff;font-size:13px}
+.tag b{color:var(--aqua)}
+.sub{margin-top:14px;color:#a5f3fc;font-size:11px;letter-spacing:2px;font-weight:800}
+/* Generic panels */
+.userbar{display:grid;grid-template-columns:minmax(260px,.85fr) minmax(300px,1.6fr);gap:14px;padding:16px clamp(12px,2vw,24px) 0}
+.main{max-width:1600px;margin:0 auto;padding:16px clamp(12px,2vw,24px) 30px}
+.panel,.userpick,.presence,.stat,.cabin{background:var(--panel);border:1px solid var(--line);border-radius:14px}
+.panel{padding:16px;margin-bottom:16px}
+.panel h2{margin:0 0 12px;font-size:14px;letter-spacing:1px;text-transform:uppercase;color:#d8f4ff}
+.userpick,.presence{padding:14px 16px;min-width:0}
+label{display:block;font-size:11px;font-weight:800;letter-spacing:.6px;color:var(--muted);text-transform:uppercase}
+input,select,textarea{display:block;width:100%;margin-top:6px;padding:10px;min-height:42px;background:var(--panel2);color:var(--text);border:1px solid #3d6a86;border-radius:8px}
+input[type=checkbox]{display:inline-block;width:20px;height:20px;min-height:20px;margin:0;accent-color:var(--aqua)}
+input[type=file]{padding:8px;font-size:13px}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--aqua);outline-offset:1px}
+input::placeholder,textarea::placeholder{color:#8fb0c5}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:10px 14px;border:1px solid var(--aqua);border-radius:9px;background:var(--aqua);color:#062c3c;font-weight:800;cursor:pointer}
+.btn.secondary{background:transparent;color:#c9f7ff;border-color:#3d6a86}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.muted{font-size:12px;color:var(--muted)}
+.msg{display:none;padding:12px;border-radius:9px;margin-bottom:14px;font-weight:700}
+.msg.show{display:block}
+.msg.success{background:#08362a;border:1px solid var(--green);color:#bbf7d0}
+.msg.error{background:#4a1a2c;border:1px solid var(--red);color:#ffd1dc}
+/* Sign-in */
+.passwordRow{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.passwordRow input{flex:1 1 170px;margin:0}
+.passwordRow .btn{min-width:62px;padding:8px 10px}
+.accessActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.modeBadge{display:inline-block;margin-top:10px;padding:4px 9px;border-radius:999px;border:1px solid var(--blue);background:#0b2f48;color:#bae6fd;font-size:10px;font-weight:900;letter-spacing:1px}
+.modeBadge.editor{border-color:var(--green);background:#08362a;color:#bbf7d0}
+#identityNote{display:block;margin-top:8px;font-size:12px;color:var(--muted)}
+/* Presence */
+.presenceTitle{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:900;letter-spacing:1.2px;color:#b9f5ff}
+.presenceTitle .btn{margin-left:auto;min-height:32px;padding:5px 10px;font-size:12px}
+.liveDot{width:8px;height:8px;border-radius:50%;background:var(--green)}
+.activeUsers{display:flex;flex-direction:column;gap:8px;margin-top:12px;max-height:280px;overflow-y:auto;font-size:12px;color:var(--muted)}
+.userRow{display:grid;grid-template-columns:minmax(0,1fr) minmax(120px,auto) auto;gap:10px;align-items:center;padding:10px;border:1px solid #2c536f;border-radius:11px;background:#10334d}
+.userRow .name{color:var(--text);font-weight:800}
+.userRow small{display:block;margin-top:3px}
+.userRow .online{color:#86efac}
+.userRow select{margin:0;min-height:34px;padding:5px 8px;font-size:12px}
+.kickBtn{min-height:32px;padding:6px 10px;border:1px solid var(--red);border-radius:8px;background:#4a1a2c;color:#ffd1dc;font-weight:800;font-size:11px;cursor:pointer}
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:12px}
+.dashHead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:18px 0 10px;padding-left:10px;border-left:4px solid var(--aqua)}
+.dashHead h2{margin:0}
+.checkstats[data-dash="CREW"]{margin-bottom:22px}
+.checkstats .stat.active{border-color:var(--aqua)}
+.checkstats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.stat{padding:14px;text-align:left;color:inherit;width:100%;cursor:pointer;border-top:4px solid var(--aqua)}
+.stat.active,.stat:hover{border-color:var(--aqua)}
+.stats .stat:nth-child(2){border-top-color:var(--green)}
+.stats .stat:nth-child(3){border-top-color:var(--gold)}
+.stats .stat:nth-child(4){border-top-color:var(--pink)}
+.checkstats .stat:nth-child(5n+2){border-top-color:var(--violet)}
+.checkstats .stat:nth-child(5n+3){border-top-color:var(--gold)}
+.checkstats .stat:nth-child(5n+4){border-top-color:var(--green)}
+.checkstats .stat:nth-child(5n+5){border-top-color:var(--pink)}
+.stat .label{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:#d0e6f6}
+.stat .num{font-size:clamp(24px,2.6vw,34px);font-weight:900;margin-top:6px}
+.stat .hint{font-size:10px;color:var(--aqua);margin-top:4px}
+.checkstats .stat{padding:10px}
+.checkstats .num{font-size:22px}
+/* Tables */
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:10px;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:12px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid #1d4560;white-space:nowrap}
+th{background:#123a55;color:#c9f4ff;font-size:10px;letter-spacing:1px;position:sticky;top:0}
+td button{background:none;border:0;color:#62e5e0;text-decoration:underline;font-weight:800;cursor:pointer;padding:0}
+.auditRows{max-height:280px;overflow-y:auto;font-size:12px}
+.auditRows div{padding:8px 0;border-bottom:1px solid #1d4560}
+/* Filters */
+.filters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:end}
+.filters .actions{display:flex;gap:8px;flex-wrap:wrap;grid-column:1/-1;align-items:center}
+/* Assignment panel */
+#technicianAssignmentPanel h2{color:#ff6b7a}
+.assignmentControls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:end}
+.assignmentActions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0}
+.assignmentList{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;max-height:300px;overflow:auto;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);margin-bottom:12px}
+.assignOpt{display:flex;align-items:center;gap:8px;padding:8px;border:1px solid #2c536f;border-left:4px solid var(--tc,#94a3b8);border-radius:7px;font-size:12px;text-transform:none;letter-spacing:0;color:var(--text);font-weight:600}
+.assignOpt small{margin-left:auto;color:var(--tc,#94a3b8);font-weight:800}
+/* Technician colours */
+.tech-julius-t{--tc:#38bdf8}.tech-alana{--tc:#f472b6}.tech-cesar{--tc:#fbbf24}.tech-roland{--tc:#a78bfa}.tech-julius-l{--tc:#34d399}.tech-unassigned{--tc:#94a3b8}
+.tech-tv-check-1{--tc:#22d3ee}.tech-tv-check-2{--tc:#fb923c}.tech-tv-check-3{--tc:#a3e635}.tech-tv-check-4{--tc:#e879f9}.tech-tv-check-5{--tc:#facc15}.tech-tv-check-6{--tc:#f87171}
+/* Cabin cards */
+.result{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:18px 0 12px;flex-wrap:wrap}
+.result h2{margin:0;font-size:17px}
+.bulk{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 14px;margin-bottom:14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2)}
+.bulk label{display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;color:var(--text);font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.cabin{padding:14px;border-top:4px solid var(--tc,var(--aqua));min-width:0}
+.cabin .head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.number{font-size:22px;font-weight:900;overflow-wrap:anywhere}
+.meta{font-size:11px;color:var(--muted);margin-top:4px}
+.head-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.head-actions label{display:flex;align-items:center;gap:5px;font-size:10px;text-transform:none;color:#bdeeff}
+.back-top{min-height:32px;padding:4px 8px;border:1px solid var(--aqua);border-radius:8px;background:#123d55;color:#8ff7ff;font-weight:900;font-size:11px;cursor:pointer}
+.pill{font-size:10px;font-weight:800;border-radius:999px;padding:5px 9px;background:#55400f;color:#fff0b3;border:1px solid var(--gold)}
+.pill.done{background:#104b31;color:#b7f7cc;border-color:var(--green)}
+.pill.progress{background:#123e68;color:#bae6fd;border-color:var(--blue)}
+.tv-checklist h3{margin:12px 0 4px;font-size:11px;letter-spacing:1px;color:#67e8f9;text-transform:uppercase}
+.check{display:flex;align-items:center;gap:10px;min-height:42px;padding:6px 0;border-bottom:1px solid #1d4560;font-size:13px;text-transform:none;letter-spacing:0;color:var(--text);font-weight:600}
+.check span{flex:1}
+.check small{color:var(--muted);font-size:11px}
+.check.secdoor span{color:#ffc8ee;font-weight:800}
+.check.secdoor input{accent-color:#ff8fd8}
+.remarks{margin-top:12px;color:var(--gold)}
+.whatcheck{margin-top:12px;color:#7dd3fc}
+.whatcheck textarea{min-height:56px;resize:vertical;font-size:14px;line-height:1.4;text-transform:none;letter-spacing:0;font-weight:400;border-color:#38bdf8}
+.excelAssign{border:1px dashed #38bdf8;border-radius:10px;padding:12px;margin:0 0 14px;background:rgba(56,189,248,.06)}
+.excelAssign h3{margin:0 0 6px;font-size:14px;color:#7dd3fc}
+.excelAssign .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+.remarks textarea{min-height:76px;resize:vertical;font-size:14px;line-height:1.4;text-transform:none;letter-spacing:0;font-weight:400}
+.upload-remark{margin-top:10px;padding:8px 10px;border:1px dashed var(--gold);border-radius:8px;background:rgba(245,185,66,.08);font-size:12px;color:#ffe7b3;white-space:pre-wrap;overflow-wrap:anywhere}
+.upload-remark b{display:block;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:3px}
+.upload-remark.saved{border-style:solid;border-color:var(--green);background:rgba(34,197,94,.08);color:#bbf7d0}
+.upload-remark.saved b{color:#86efac}
+.assign{margin-top:10px}
+.presenceTag{margin-top:8px;padding:6px 9px;border-radius:7px;font-size:11px;font-weight:800;background:rgba(148,163,184,.1);border:1px solid rgba(148,163,184,.3);color:#cbd5e1}
+.presenceTag.online{color:#86efac;background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.45)}
+.cabin .save{width:100%;margin-top:12px}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+.footer{text-align:center;color:var(--muted);font-size:11px;padding:24px;border-top:1px solid var(--line);margin-top:18px}
+.footer b{color:var(--aqua)}
+@media(max-width:1050px){
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .checkstats{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .filters,.assignmentControls{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .assignmentList{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .userbar{grid-template-columns:1fr}
+}
+@media(max-width:700px){
+  .hero{display:block;min-height:0}
+  .hero-photo{position:relative;width:100%}
+  .hero-photo img{height:auto;max-height:200px;object-fit:contain;background:#071521}
+  .hero:after{display:none}
+  .grid,.filters,.assignmentControls,.assignmentList{grid-template-columns:1fr}
+  .checkstats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .userRow{grid-template-columns:1fr}
+  .mark{font-size:12px;padding:9px}
+}
+*:not(.slide-next):not(.slide-prev),*::before,*::after{animation:none!important;transition:none!important}
+/* PAX + Crew status board — futuristic neon */
+.sb{--sbm:#9fb6cc;--sbt:rgba(120,170,220,.13);
+ --c-none:#4b5a74;--c-installed:#ffd60a;--c-patch:#ffb703;--c-ap:#00e5ff;--c-powering:#ff6b1a;--c-tested:#39ff88;--c-configured:#b6ff3b;--c-notv:#8aa0c0;--c-held:#ff3d71;--c-remarks:#c77dff;--c-done:#39ff88;--c-prog:#ffb703;--c-ns:#8aa0c0;--c-secdoor:#ff8fd8;
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:6px 0 18px}
+.sb-card{position:relative;overflow:hidden;min-width:0;padding:16px;border-radius:16px;color:#eaf6ff;
+ background:radial-gradient(500px 220px at 0% 0%,rgba(0,229,255,.12),transparent 60%),radial-gradient(500px 240px at 100% 100%,rgba(199,125,255,.12),transparent 60%),linear-gradient(160deg,#071327,#0a1a33 60%,#070f20);
+ border:1px solid rgba(0,229,255,.32);box-shadow:0 0 28px rgba(0,229,255,.08),0 12px 30px rgba(0,0,0,.4),inset 0 1px 0 rgba(0,229,255,.35)}
+.sb-card::before{content:"";position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(0,229,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.05) 1px,transparent 1px);background-size:30px 30px;-webkit-mask-image:linear-gradient(180deg,#000,transparent 80%);mask-image:linear-gradient(180deg,#000,transparent 80%)}
+.sb-card>*{position:relative}
+.sb-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.sb-title{font-family:'Orbitron',Inter,sans-serif;font-size:14px;font-weight:800;letter-spacing:2px;text-transform:uppercase;text-shadow:0 0 10px rgba(0,229,255,.5)}
+.sb-tag{font-size:10px;font-weight:900;letter-spacing:1.4px;color:#7fe9ff;border:1px solid rgba(0,229,255,.4);border-radius:99px;padding:4px 9px;white-space:nowrap}
+.sb :where(button){font:inherit;color:inherit;min-height:0;letter-spacing:normal;text-transform:none}
+.sb-ov{display:block;width:100%;border:0;background:none;padding:0;margin:12px 0 4px;text-align:left;cursor:pointer}
+.sb-ov-row{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.sb-big{font-family:'Orbitron',Inter,sans-serif;font-weight:800;font-size:clamp(34px,4vw,48px);line-height:1;background:linear-gradient(90deg,#e8fbff,#7fe9ff 45%,#39ff88);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 10px rgba(0,229,255,.35))}
+.sb-big small{font-size:.5em;-webkit-text-fill-color:#7fe9ff}
+.sb-ov-cap{font-size:10px;font-weight:900;letter-spacing:1.5px;color:#7fe9ff;text-transform:uppercase;margin-bottom:6px}
+.sb-ov-sub{font-size:12px;color:#dbeafe;font-weight:700;text-align:right}.sb-ov-sub b{color:#fff}
+.sb-track{height:8px;background:var(--sbt);border-radius:99px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(120,170,220,.2);margin-top:9px}
+.sb-track i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#00e5ff,#39ff88);box-shadow:0 0 10px rgba(57,255,136,.6)}
+.sb-status{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:14px}
+.sb-st{border:0;border-radius:10px;padding:9px 10px;text-align:left;cursor:pointer;background:rgba(8,20,40,.85);box-shadow:inset 0 0 0 1px rgba(120,170,220,.2),inset 3px 0 0 var(--gc)}
+.sb-st span{display:block;font-size:9.5px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:#cbd5e1}
+.sb-st strong{display:block;font-family:'Orbitron',Inter,sans-serif;font-size:20px;margin-top:5px;color:var(--gc);text-shadow:0 0 10px color-mix(in srgb,var(--gc) 50%,transparent)}
+.sb-gates{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:8px}.sb-gates.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.sb-gate{min-width:0;border:0;border-radius:10px;padding:10px 10px 9px;text-align:left;cursor:pointer;background:linear-gradient(170deg,color-mix(in srgb,var(--gc) 12%,#0b1b30),#081428 60%);box-shadow:inset 0 0 0 1px rgba(120,170,220,.2),inset 0 2px 0 var(--gc)}
+.sb-st:hover,.sb-gate:hover,.sb-st:focus-visible,.sb-gate:focus-visible{outline:none;box-shadow:inset 0 0 0 1px var(--gc),inset 0 2px 0 var(--gc),inset 0 0 18px color-mix(in srgb,var(--gc) 22%,transparent)}
+.sb-st.active,.sb-gate.active{box-shadow:inset 0 0 0 2px var(--gc),inset 0 0 20px color-mix(in srgb,var(--gc) 30%,transparent)}
+.sb-gl{display:flex;align-items:center;gap:6px;font-size:9.5px;font-weight:900;letter-spacing:.9px;text-transform:uppercase;color:#cbd5e1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-sq{width:8px;height:8px;flex:none;border-radius:2px;background:var(--gc);box-shadow:0 0 6px var(--gc)}
+.sb-pct{font-family:'Orbitron',Inter,sans-serif;font-weight:700;font-size:20px;line-height:1;margin:8px 0 3px;color:var(--gc);text-shadow:0 0 10px color-mix(in srgb,var(--gc) 55%,transparent)}
+.sb-of{color:var(--sbm);font-size:11px}
+.sb-gate .sb-track{height:4px;margin-top:7px;box-shadow:none}.sb-gate .sb-track i{background:var(--gc);box-shadow:0 0 6px var(--gc)}
+.sb-stack{display:flex;height:16px;gap:2px;margin-top:14px;padding:2px;border-radius:99px;background:#050c1a;box-shadow:inset 0 0 0 1px rgba(0,229,255,.35)}
+.sb-stack button{border:0;padding:0;height:100%;min-width:3px;border-radius:99px;cursor:pointer;background:var(--gc);box-shadow:0 0 6px color-mix(in srgb,var(--gc) 60%,transparent)}.sb-stack button:hover{filter:brightness(1.25)}
+.sb-legend{display:flex;flex-wrap:wrap;gap:3px 12px;margin-top:8px;font-size:11.5px}
+.sb-legend button{display:flex;align-items:center;gap:5px;border:0;background:none;cursor:pointer;padding:1px 0;color:#dbeafe}
+.sb-legend b{color:#fff}.sb-legend button.active{color:#fff;text-decoration:underline;text-underline-offset:3px}
+.sb-flags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.sb-flag{display:flex;align-items:center;gap:6px;border:1px solid rgba(120,170,220,.3);border-radius:99px;background:rgba(8,20,40,.85);padding:5px 10px;font-size:11.5px;cursor:pointer;color:#dbeafe}
+.sb-flag b{color:var(--gc);text-shadow:0 0 6px var(--gc)}.sb-flag:hover,.sb-flag.active{border-color:var(--gc);box-shadow:0 0 10px color-mix(in srgb,var(--gc) 40%,transparent)}
+@media(max-width:1050px){.sb{grid-template-columns:1fr}}
+@media(max-width:560px){.sb-card{padding:13px}.sb-status{grid-template-columns:repeat(2,minmax(0,1fr))}.sb-gates,.sb-gates.two{grid-template-columns:repeat(2,minmax(0,1fr))}.sb-big{font-size:34px}}
+
+/* Full-screen cabin view on phones / tablets */
+.open-full{display:none;min-height:32px;padding:4px 9px;border:1px solid #39ff88;border-radius:8px;background:#0b3a2a;color:#b9ffd6;font-weight:900;font-size:11px;cursor:pointer}
+@media (max-width:900px),(pointer:coarse){.open-full{display:inline-block}#grid .cabin .number,#venueList .vcard .vname{cursor:pointer}}
+.focus-overlay{position:fixed;inset:0;z-index:9999;display:none;flex-direction:column;height:100vh;height:100dvh;background:linear-gradient(160deg,#06172a,#0a1f38 60%,#071326)}
+.focus-overlay.open{display:flex}
+.focus-bar{flex:none;display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top,0px) + 8px) 10px 8px;background:#0a2033;border-bottom:1px solid var(--aqua);box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.focus-bar button{min-height:44px;min-width:44px;padding:8px 12px;border:1px solid #2f5f80;border-radius:10px;background:#123d55;color:#e8fbff;font-weight:900;font-size:14px;cursor:pointer}
+.focus-bar button:disabled{opacity:.35}
+.focus-bar .focus-close{border-color:var(--aqua);color:#8ff7ff}
+.focus-head{flex:1;min-width:0;text-align:center}
+.focus-title{font-size:20px;font-weight:900;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.focus-pos{font-size:11px;color:#9fb6cc}
+.focus-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:12px 12px calc(env(safe-area-inset-bottom,0px) + 20px)}
+.focus-body .cabin,.focus-body .vcard{max-width:760px;margin:0 auto;border-width:2px}
+.focus-body .cabin .back-top,.focus-body .cabin .open-full,.focus-body .vcard .back-top,.focus-body .vcard .open-full{display:none!important}
+.focus-body .vcard .vname{font-size:26px}
+.focus-body .cabin .number{font-size:30px}
+.focus-body .cabin input[type=checkbox],.focus-body .vcard input[type=checkbox]{transform:scale(1.25)}
+.focus-body .cabin textarea,.focus-body .vcard textarea{min-height:110px;font-size:16px}
+.focus-body .cabin .save,.focus-body .vcard .save{position:sticky;bottom:0;width:100%;min-height:52px;font-size:16px;margin-top:12px;box-shadow:0 -8px 18px rgba(6,23,42,.9)}
+html.focus-lock,html.focus-lock body{overflow:hidden!important;overscroll-behavior:none}
+
+/* Swipe between Guest and Crew dashboards on phones */
+.sb-tabs{display:none}
+@media (max-width:760px){
+  .sb-tabs{display:flex;align-items:center;gap:6px;margin:4px 0 8px}
+  .sb-tabs button{flex:0 0 auto;min-height:36px;padding:6px 14px;border:1px solid rgba(0,229,255,.35);border-radius:99px;background:rgba(8,20,40,.85);color:#bfe9ff;font-weight:900;font-size:12px;letter-spacing:.5px;cursor:pointer}
+  .sb-tabs button.active{background:linear-gradient(90deg,#00b8d4,#22c55e);color:#04121f;border-color:transparent;box-shadow:0 0 12px rgba(0,229,255,.45)}
+  .sb-swipe-hint{margin-left:auto;font-size:11px;color:#7fe9ff;font-weight:800}
+  .sb{display:flex!important;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scrollbar-width:none;padding-bottom:4px}
+  .sb::-webkit-scrollbar{display:none}
+  .sb>.sb-card{flex:0 0 100%;scroll-snap-align:center;scroll-snap-stop:always}
+}
+/* Slide animation when swiping between cabins in full screen */
+@keyframes focusInNext{from{transform:translateX(40px);opacity:.3}to{transform:none;opacity:1}}
+@keyframes focusInPrev{from{transform:translateX(-40px);opacity:.3}to{transform:none;opacity:1}}
+.focus-body .cabin.slide-next,.focus-body .vcard.slide-next{animation:focusInNext .22s ease-out}
+.focus-body .cabin.slide-prev,.focus-body .vcard.slide-prev{animation:focusInPrev .22s ease-out}
+@media (prefers-reduced-motion:reduce){.focus-body .cabin.slide-next,.focus-body .cabin.slide-prev,.focus-body .vcard.slide-next,.focus-body .vcard.slide-prev,#venueList.slide-next,#venueList.slide-prev{animation:none}}
+#venueList{touch-action:pan-y}
+#venueList.slide-next{animation:gridInLeft .24s ease-out}
+#venueList.slide-prev{animation:gridInRight .24s ease-out}
+.vcard .vhead .head-actions{flex:none}
+
+/* Guest / Crew cabin tabs + swipe */
+.cabin-tabs{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 12px;padding:8px;border:1px solid rgba(0,229,255,.3);border-radius:14px;background:rgba(6,23,42,.94);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.cabin-tabs button{min-height:40px;padding:7px 14px;border:1px solid rgba(0,229,255,.35);border-radius:99px;background:rgba(8,20,40,.85);color:#bfe9ff;font-weight:900;font-size:13px;cursor:pointer}
+.cabin-tabs button b{font-weight:800;opacity:.8;margin-left:4px}
+.cabin-tabs button.active{background:linear-gradient(90deg,#00b8d4,#22c55e);color:#04121f;border-color:transparent;box-shadow:0 0 12px rgba(0,229,255,.45)}
+.cabin-tabs-hint{margin-left:auto;font-size:11px;color:#7fe9ff;font-weight:800}
+@media (hover:hover) and (pointer:fine){.cabin-tabs-hint{display:none}}
+@media (max-width:560px){.cabin-tabs button{flex:1;padding:7px 8px;font-size:12px}.cabin-tabs-hint{width:100%;text-align:center;margin:2px 0 0}}
+#grid{touch-action:pan-y}
+@keyframes gridInLeft{from{transform:translateX(48px);opacity:.25}to{transform:none;opacity:1}}
+@keyframes gridInRight{from{transform:translateX(-48px);opacity:.25}to{transform:none;opacity:1}}
+#grid.slide-next{animation:gridInLeft .24s ease-out}
+#grid.slide-prev{animation:gridInRight .24s ease-out}
+
+/* TVs Installed panel (Guest + Crew TV count) */
+.tvc-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.tvc-head h2{margin:0}
+.tvc-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.tvc-card{display:block;width:100%;text-align:left;cursor:pointer;color:#eaf6ff;padding:16px;border-radius:14px;min-height:0;
+ background:linear-gradient(160deg,color-mix(in srgb,var(--gc) 14%,#0a1a33),#070f20 70%);border:1px solid color-mix(in srgb,var(--gc) 45%,transparent);
+ box-shadow:inset 0 2px 0 var(--gc),0 0 18px color-mix(in srgb,var(--gc) 12%,transparent)}
+.tvc-card:hover,.tvc-card.active{box-shadow:inset 0 0 0 2px var(--gc),0 0 22px color-mix(in srgb,var(--gc) 30%,transparent)}
+.tvc-cap{font-size:10px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;color:var(--gc)}
+.tvc-big{font-family:'Orbitron',Inter,sans-serif;font-weight:800;font-size:clamp(30px,3.6vw,44px);line-height:1;margin-top:8px;color:#fff;text-shadow:0 0 12px color-mix(in srgb,var(--gc) 50%,transparent)}
+.tvc-big small{font-size:.45em;color:#9fb6cc;text-shadow:none}
+.tvc-sub{font-size:12px;margin-top:8px;color:#dbeafe}.tvc-sub b{color:var(--gc)}
+.tvc-card .sb-track i{background:var(--gc)!important;box-shadow:0 0 8px var(--gc)}
+.tvc-foot{font-size:11px;color:#9fb6cc;margin-top:8px}
+.tvc-stages{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:10px}
+.tvc-st{border-radius:9px;padding:7px 8px;background:rgba(8,20,40,.85);box-shadow:inset 0 0 0 1px rgba(120,170,220,.2),inset 3px 0 0 var(--sc)}
+.tvc-st span{display:block;font-size:9px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:#cbd5e1}
+.tvc-st strong{display:block;font-family:'Orbitron',Inter,sans-serif;font-size:17px;margin-top:4px;color:var(--sc)}
+.tvc-bar{display:flex;height:10px;margin-top:9px;border-radius:99px;overflow:hidden;background:rgba(120,170,220,.13)}
+.tvc-bar i{display:block;height:100%;background:var(--sc)}
+@media(max-width:900px){.tvc-grid{grid-template-columns:1fr}}
+/* Batch tick panel (uploaded cabin list) */
+#batchPanel{border-color:var(--gold)}
+#lockPanel{border-color:#fb7185}
+.pill.lockpill{background:#3a1626;color:#ffd1dc;border-color:#fb7185}
+.selbox.lockbox{border-color:#fb7185;background:rgba(251,113,133,.12);color:#ffd1dc}
+#lockPanel h2{color:#fda4af}
+.check input[data-locked]{cursor:not-allowed}
+.check input[data-locked]~span{opacity:.8}
+#lockNote{margin:0 0 14px;padding:10px 14px;border:1px solid #fb7185;border-radius:10px;background:#3a1626;color:#ffd1dc;font-weight:800;font-size:13px}
+#batchPanel h2{color:var(--gold)}
+.batchChecks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0}
+.batchOpt{display:flex;align-items:center;gap:9px;min-height:44px;padding:8px 10px;border:1px solid #2c536f;border-radius:9px;background:var(--panel2);font-size:13px;text-transform:none;letter-spacing:0;color:var(--text);font-weight:700;cursor:pointer}
+.batchOpt:has(input:checked){border-color:var(--gold);background:rgba(245,185,66,.12)}
+.batchRow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-items:end}
+/* Batch selection on cabin cards */
+.selbox{display:flex;align-items:center;gap:5px;min-height:32px;padding:4px 8px;border:1px solid var(--gold);border-radius:8px;background:rgba(245,185,66,.1);color:#ffe7b3;font-size:11px;font-weight:900;letter-spacing:.3px;text-transform:none;cursor:pointer}
+.selbox input{width:18px;height:18px;min-height:18px}
+.cabin.selected{box-shadow:0 0 0 2px var(--gold),0 0 18px rgba(245,185,66,.25)}
+#bulkBar{position:sticky;top:64px;z-index:19}
+#bulkBar .btn{min-height:38px;padding:7px 12px}
+#bulkSaveAll{background:var(--green);border-color:var(--green);color:#04121f}
+.batchActions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+@media(max-width:900px){.batchChecks{grid-template-columns:repeat(2,minmax(0,1fr))}.batchRow{grid-template-columns:1fr}}
+/* View switch: Cabins | Public Areas */
+.viewSwitch{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px;padding:8px;border:1px solid var(--line);border-radius:14px;background:var(--panel2)}
+.viewSwitch button{flex:1 1 200px;min-height:48px;padding:10px 16px;border:1px solid #3d6a86;border-radius:11px;background:transparent;color:#c9f7ff;font-weight:900;font-size:15px;letter-spacing:.4px;cursor:pointer}
+.viewSwitch button small{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-top:2px}
+.viewSwitch button.active{background:linear-gradient(90deg,#00b8d4,#22c55e);color:#04121f;border-color:transparent}
+.viewSwitch button.active small{color:#06303a}
+.viewSwitch a.finalCheckLink{flex:1 1 200px;min-height:48px;padding:10px 16px;border:1px solid #f5b942;border-radius:11px;color:#ffe7b3;font-weight:900;font-size:15px;text-align:center;text-decoration:none}
+.viewSwitch a.finalCheckLink small{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-top:2px}
+body.view-venues .cabinView{display:none!important}
+body:not(.view-venues) .venueView{display:none!important}
+/* Public area dashboard */
+.vk{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.vk-card{border:1px solid var(--line);border-top:4px solid var(--gc,var(--aqua));border-radius:12px;background:var(--panel2);padding:12px;text-align:left;color:inherit;cursor:pointer;min-width:0}
+.vk-card.active{box-shadow:inset 0 0 0 2px var(--gc,var(--aqua))}
+.vk-card span{display:block;font-size:10px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:#cbd5e1}
+.vk-card strong{display:block;font-family:'Orbitron',Inter,sans-serif;font-size:24px;margin-top:6px;color:var(--gc,#fff)}
+.vk-card small{display:block;font-size:11px;color:var(--muted);margin-top:3px}
+.vk-card .sb-track{height:5px;margin-top:8px}.vk-card .sb-track i{background:var(--gc)!important;box-shadow:none}
+.vchecks{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;margin-bottom:14px}
+.vtables{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.vtables>div,.vt-full{min-width:0}
+.vtables h3,.vt-full h3{margin:0 0 8px;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#67e8f9}
+.vt-full{margin-top:14px}
+.vtables table,.vt-full table{min-width:560px}
+.vt-click{cursor:pointer}.vt-click:hover td{background:#123a55}
+.srcchip{display:inline-block;margin:2px 4px 2px 0;padding:2px 8px;border-radius:99px;border:1px solid #2f5f80;background:#0b2f48;color:#bae6fd;font-size:11px;font-weight:800;white-space:nowrap}
+.srcchip b{color:#fff;margin-left:3px}
+td.wrapcell{white-space:normal;min-width:220px}
+/* Venue cards grouped by deck */
+.vfilters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:end}
+.vfilters .actions{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.deckGroup{margin:18px 0 8px;padding:10px 14px;border-left:4px solid var(--aqua);border-radius:8px;background:var(--panel2)}
+.deckGroup h3{margin:0;font-size:17px}
+.deckGroup .muted{margin-top:4px}
+.vgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.vcard{background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--tc,var(--aqua));border-radius:14px;padding:14px;min-width:0}
+.vcard.held{border-color:var(--red)}
+.vcard .vhead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.vcard .vname{font-size:17px;font-weight:900;overflow-wrap:anywhere}
+.vcard .vloc{font-size:12px;color:#dbeafe;margin-top:3px;overflow-wrap:anywhere}
+.vbadges{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.vbadge{padding:3px 8px;border-radius:7px;font-size:11px;font-weight:900;background:#123d55;border:1px solid #2f5f80;color:#e0f2fe}
+.vbadge.src{background:#2b1b4d;border-color:#8b5cf6;color:#e9d5ff}
+.vbadge.qty{background:#3b2c0c;border-color:var(--gold);color:#ffe7b3}
+.vbadge.crew{background:#3a1636;border-color:var(--pink);color:#fbcfe8}
+.vcard .check.heldup span{color:#fecdd3}
+.vcard textarea{min-height:60px;resize:vertical;font-size:14px;text-transform:none;letter-spacing:0;font-weight:400}
+.vcard .save{width:100%;margin-top:12px}
+@media(max-width:1050px){.vk{grid-template-columns:repeat(2,minmax(0,1fr))}.vchecks{grid-template-columns:repeat(4,minmax(0,1fr))}.vtables{grid-template-columns:minmax(0,1fr)}.vgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.vfilters{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* Mobile phones: hide Cabin Count by Deck and Recent Update History (tablets and computers still show them) */
+@media (max-width:700px),(max-device-width:700px){.hide-on-phone{display:none!important}}
+@media(max-width:700px){.vchecks{grid-template-columns:repeat(2,minmax(0,1fr))}.vgrid,.vfilters{grid-template-columns:1fr}}
+/* Confirm pop-up for No TV Here / Held Up */
+.tick-modal{position:fixed;inset:0;z-index:10050;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(2,8,18,.78)}
+.tick-modal.open{display:flex}
+.tick-box{width:100%;max-width:460px;max-height:90vh;overflow-y:auto;padding:18px;border-radius:16px;background:var(--panel);border:2px solid var(--tm,var(--gold));box-shadow:0 20px 50px rgba(0,0,0,.6)}
+.tick-box h3{margin:0 0 4px;font-size:19px;color:var(--tm,var(--gold))}
+.tick-where{font-size:12px;color:var(--muted);margin-bottom:10px}
+.tick-text{font-size:14px;line-height:1.45;margin:0 0 12px;color:var(--text)}
+.tick-box textarea{min-height:96px;resize:vertical;font-size:16px;text-transform:none;letter-spacing:0;font-weight:400}
+.tick-err{min-height:18px;margin-top:6px;font-size:12px;font-weight:800;color:#ffb4c0}
+.tick-btns{display:flex;gap:10px;margin-top:10px}
+.tick-btns .btn{flex:1;min-height:48px}
+.tick-btns .tick-ok{background:var(--tm,var(--gold));border-color:var(--tm,var(--gold));color:#04121f}
+</style>
+</head>
+<body>
+<section id="offlinePanel" class="offline-panel online" role="status" aria-live="polite">
+  <div><div class="offline-title" id="offlineLabel">ONLINE · SAVES SYNCHRONIZED</div><div class="offline-detail" id="offlineDetail">Pending saves are stored on this device until the shared tracker confirms them.</div></div>
+  <div><span id="pendingCount" style="font-weight:900">0 pending</span> <button id="retryPending" class="btn secondary" type="button">Retry Pending Saves</button></div>
+</section>
+<header class="hero">
+  <!-- Header photo comes from the Photo.html file (it holds only the data URL: data:image/jpeg;base64,...). If Photo.html is missing the photo is hidden. -->
+  <div class="hero-photo"><img id="heroPhoto" src="<?!= include('Photo') ?>" alt="Broadcast Center team on Norwegian Escape"></div>
+  <div class="wrap">
+    <div class="brand">
+      <div class="mark">NCL<br>ESCAPE</div>
+      <div>
+        <h1>Pax and Crew<br>TV Installation <span>Tracker</span></h1>
+        <p class="tag">NCL ESCAPE · BROADCAST OPERATIONS <b>— Same Cabins, Brighter Voyages</b></p>
+      </div>
+    </div>
+    <div class="sub">PASSENGER + CREW CABINS · LIVE INSTALLATION STATUS · BROADCAST CENTER</div>
+  </div>
+</header>
+<section class="userbar wrap">
+  <div class="userpick">
+    <label for="activeTech">Technician Account</label>
+    <select id="activeTech"><option value="">Select account</option><option>Julius T</option><option>Alana</option><option>Cesar</option><option>Roland</option><option>Julius L</option><option>TV Check 1</option><option>TV Check 2</option><option>TV Check 3</option><option>TV Check 4</option><option>TV Check 5</option><option>TV Check 6</option></select>
+    <label for="editCode" style="margin-top:10px">Individual Password</label>
+    <div class="passwordRow">
+      <input id="editCode" type="password" autocomplete="current-password" placeholder="Enter your password">
+      <button id="togglePassword" class="btn secondary" type="button" aria-pressed="false">Show</button>
+      <button id="pastePassword" class="btn secondary" type="button">Paste</button>
+    </div>
+    <div class="accessActions">
+      <button id="unlockBtn" class="btn" type="button">Sign In &amp; Enable Editing</button>
+      <button id="logoutBtn" class="btn secondary" type="button" hidden>Logout</button>
+    </div>
+    <span id="modeBadge" class="modeBadge">READ-ONLY VIEW</span>
+    <span id="identityNote">Sign in to view and update your assigned cabins. Editors: Julius T, Alana, Cesar, Roland, Julius L and TV Check 1–6.</span>
+  </div>
+  <div class="presence">
+    <div class="presenceTitle"><span class="liveDot"></span> ACTIVE USERS <button id="refreshUsers" class="btn secondary" type="button">Refresh</button></div>
+    <div id="activeUsers" class="activeUsers">Sign in to view active users.</div>
+  </div>
+</section>
+<main class="main">
+  <div id="msg" class="msg" role="status" aria-live="polite"></div>
+  <section class="panel" id="exportPanel" hidden style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+    <button class="btn" id="exportExcel" type="button">Export All to Excel (.xlsx)</button>
+    <span id="exportNote" class="muted">Only Julius L can run the full export.</span>
+  </section>
+  <section class="panel" id="lockPanel" hidden>
+    <h2>Checklist Lock (Julius L)</h2>
+    <label class="check" style="border:0"><input type="checkbox" id="lockTickedToggle"><span>Lock ticked items — the other technicians can still tick new items and add remarks, but cannot untick anything already saved as YES (cabins and public areas). You can still change everything.</span></label>
+    <div id="lockMsg" class="muted"></div>
+    <div class="muted" style="margin-top:8px">To lock only some cabins or locations, use the 🔒 Lock box on each card, or select cabins (Select / Select all shown) and press 🔒 Lock selected. On Public Areas, filter the list and press 🔒 Lock all shown. Checklist Category › 🔒 Locked cabins lists the locked cabins.</div>
+  </section>
+  <div id="dashboardTop"></div>
+  <div id="lockNote" hidden>🔒 Julius L has locked ticked items. You can tick new items and add remarks, but items already saved as YES cannot be unticked.</div>
+  <div class="viewSwitch" role="tablist" aria-label="Choose what to track">
+    <button type="button" data-view="cabins" class="active">Cabins<small>Guest (PAX) + Crew cabins</small></button>
+    <button type="button" data-view="venues">Public Areas<small>Crew &amp; Pax area TVs · by deck</small></button>
+    <a class="finalCheckLink" href="<?= ScriptApp.getService().getUrl() ?>?page=finalcheck" target="_top">Final Check ↗<small>Confirm to Menu · Verification · DND</small></a>
+  </div>
+  <section class="venueView" id="venueView">
+    <section class="panel">
+      <div class="tvc-head"><h2>Public Area TVs — Crew &amp; Pax Areas</h2><span class="muted" id="venueNote">Counts are TVs (each location counts its QTY). Tap a card or a table row to filter the list.</span></div>
+      <div class="vk" id="venueKpis"><div class="muted">Loading…</div></div>
+      <div class="vchecks" id="venueChecks"></div>
+      <div class="vtables">
+        <div><h3>TVs by Size</h3><div class="tablewrap"><table><thead><tr><th>SIZE</th><th>TVs</th><th>INSTALLED</th><th>POWER CONN.</th><th>LAN</th><th>POWERING ON</th><th>CONFIGURED</th><th>TESTED</th><th>HELD UP</th></tr></thead><tbody id="venueSizeRows"></tbody></table></div></div>
+        <div><h3>TVs by Source</h3><div class="tablewrap"><table><thead><tr><th>SOURCE</th><th>TVs</th><th>INSTALLED</th><th>CONFIGURED</th><th>TESTED</th><th>HELD UP</th></tr></thead><tbody id="venueSourceRows"></tbody></table></div></div>
+      </div>
+      <div class="vt-full"><h3>By Deck — venues and sources on each deck</h3><div class="tablewrap"><table><thead><tr><th>DECK</th><th>VENUES</th><th>TVs</th><th>INSTALLED</th><th>CONFIGURED</th><th>HELD UP</th><th>TO GO</th><th>SOURCES ON THIS DECK (TVs)</th></tr></thead><tbody id="venueDeckRows"></tbody></table></div></div>
+    </section>
+    <section class="panel">
+      <h2>Find Public Area TVs</h2>
+      <div class="vfilters">
+        <label>Search venue / location / remarks<input id="vSearch" type="search" placeholder="e.g. Casino, bar, IPTV"></label>
+        <label>Deck<select id="vDeck"><option value="">All decks</option></select></label>
+        <label>Area<select id="vArea"><option value="">Crew + Pax areas</option><option value="PAX">Pax areas</option><option value="CREW">Crew areas</option></select></label>
+        <label>TV Size<select id="vSize"><option value="">All sizes</option></select></label>
+        <label>Source<select id="vSource"><option value="">All sources</option></select></label>
+        <label>Status<select id="vStatus"><option value="">All statuses</option><option>Fully Configured</option><option>In Progress</option><option>Not Started</option></select></label>
+        <label>Checklist Item<select id="vCheck"><option value="">All items</option></select></label>
+        <label>Item Status<select id="vCheckState"><option value="done">Ticked / Yes</option><option value="pending">Not ticked / No</option></select></label>
+        <div class="actions">
+          <button type="button" class="btn secondary" id="vReset">Reset filters</button>
+          <button type="button" class="btn secondary" id="vLockShown" data-vadmin hidden>🔒 Lock all shown</button>
+          <button type="button" class="btn secondary" id="vUnlockShown" data-vadmin hidden>Unlock all shown</button>
+          <span class="muted" id="vCount"></span>
+        </div>
+      </div>
+    </section>
+    <div class="cabin-tabs" id="venueTabs" role="tablist" aria-label="Pax or crew areas">
+      <button type="button" role="tab" data-varea="PAX">Pax Areas <b id="vTabPAX"></b></button>
+      <button type="button" role="tab" data-varea="CREW">Crew Areas <b id="vTabCREW"></b></button>
+      <button type="button" role="tab" data-varea="">All <b id="vTabALL"></b></button>
+      <span class="cabin-tabs-hint">Swipe the list ← → to switch · tap a card for full screen</span>
+    </div>
+    <div id="venueList"></div>
+    <div id="venueEmpty" class="empty" hidden>No public area TVs match your filters.</div>
+  </section>
+  <div class="sb-tabs cabinView" id="sbTabs" role="tablist" aria-label="Switch dashboard"><button type="button" role="tab" data-i="0" class="active">Guest (PAX)</button><button type="button" role="tab" data-i="1">Crew</button><span class="sb-swipe-hint">Swipe ← →</span></div>
+  <section class="sb cabinView" id="statusBoard" aria-label="PAX and Crew installation status board"><div class="sb-card">Loading dashboard…</div><div class="sb-card">Loading dashboard…</div></section>
+  <section class="panel cabinView" id="tvCountBoard" aria-label="TVs installed"><h2>TVs Installed</h2><div class="muted">Loading TV count…</div></section>
+  <section class="panel cabinView" id="technicianAssignmentPanel" hidden>
+    <h2>Technician Cabin Assignments</h2>
+    <div class="excelAssign">
+      <h3>Assign from Excel</h3>
+      <div class="muted">1. Download the assignment Excel (every cabin, with Assigned To and What to Check drop-downs). 2. Fill in the yellow columns. 3. Upload it here and press Save.</div>
+      <div class="row">
+        <button type="button" class="btn secondary" id="downloadAssignExcel">Download Assignment Excel</button>
+        <label class="btn secondary" style="cursor:pointer">Upload Assignment Excel<input id="assignExcelFile" type="file" accept=".xlsx,.xls,.csv" hidden></label>
+        <button type="button" class="btn" id="saveUploadedAssignments" hidden>Save Assignments from Excel</button>
+      </div>
+      <div id="assignExcelStatus" class="muted" style="margin-top:6px"></div>
+    </div>
+    <div class="assignmentControls">
+      <label>Assign To Technician<select id="bulkAssignTech"><option value="">Choose technician</option><option>Julius T</option><option>Alana</option><option>Cesar</option><option>Roland</option><option>Julius L</option><option>TV Check 1</option><option>TV Check 2</option><option>TV Check 3</option><option>TV Check 4</option><option>TV Check 5</option><option>TV Check 6</option><option value="__UNASSIGNED__">Unassigned</option></select></label>
+      <label>Find Cabins<input id="assignmentSearch" type="search" placeholder="Search cabin number"></label>
+      <label>Cabin Type<select id="assignmentType"><option value="ALL">PAX + CREW</option><option value="PAX">PAX only</option><option value="CREW">CREW only</option></select></label>
+      <label>Deck<select id="assignmentDeck"><option value="">All decks</option></select></label>
+    </div>
+    <div class="assignmentActions">
+      <button type="button" class="btn secondary" id="selectVisibleAssignments">Select visible cabins</button>
+      <button type="button" class="btn secondary" id="clearAssignmentSelection">Clear selection</button>
+      <label class="muted" id="assignExcelOnlyWrap" hidden><input type="checkbox" id="assignExcelOnly" checked> Show only Excel cabins</label>
+      <span id="assignmentSelectionCount" class="muted">0 cabins selected</span>
+    </div>
+    <div id="assignmentList" class="assignmentList"></div>
+    <button type="button" class="btn" id="saveCabinAssignments">Save cabin assignments</button>
+    <div id="assignmentMessage" class="muted" style="margin:8px 0 14px"></div>
+    <div class="tablewrap"><table><thead><tr><th>TECHNICIAN</th><th>ASSIGNED</th><th>FULLY CONFIGURED</th><th>IN PROGRESS</th><th>NOT STARTED</th></tr></thead><tbody id="technicianRows"></tbody></table></div>
+  </section>
+  <section class="panel cabinView hide-on-phone" id="deckCountPanel">
+    <h2>Cabin Count by Deck — Passenger and Crew</h2>
+    <div class="tablewrap"><table><thead><tr><th>DECK</th><th>PAX</th><th>CREW</th><th>TOTAL</th><th>FULLY CONFIGURED</th><th>IN PROGRESS</th><th>NOT STARTED</th><th>TVs INSTALLED</th><th>TVs IN PROGRESS</th><th>TVs TO GO</th></tr></thead><tbody id="deckRows"><tr><td colspan="10">Loading…</td></tr></tbody></table></div>
+  </section>
+  <section class="panel hide-on-phone" id="historyPanel">
+    <h2>Recent Update History</h2>
+    <div id="historyRows" class="auditRows">Loading update history…</div>
+  </section>
+  <section class="panel cabinView">
+    <h2>Find and Filter Cabins</h2>
+    <div class="filters">
+      <label>Search Cabin / Remarks<input id="search" placeholder="Cabin number or remark text"></label>
+      <label>Cabin Type<select id="type"><option value="ALL">Pax + Crew</option><option value="PAX">Passenger</option><option value="CREW">Crew</option></select></label>
+      <label>Deck<select id="deck"><option value="">All Decks</option></select></label>
+      <label>Status<select id="status"><option value="all">All statuses</option><option>Fully Configured</option><option>In Progress</option><option>Not Started</option></select></label>
+      <label>Assigned Technician<select id="assignedTech"><option value="">All technicians</option><option>Julius T</option><option>Alana</option><option>Cesar</option><option>Roland</option><option>Julius L</option><option>TV Check 1</option><option>TV Check 2</option><option>TV Check 3</option><option>TV Check 4</option><option>TV Check 5</option><option>TV Check 6</option><option value="__UNASSIGNED__">Unassigned</option></select></label>
+      <label>Checklist Category<select id="checklistCategory"><option value="">All categories</option><option value="No TV Here">No TV Here</option><option value="Security to Open the Door">🔐 Security to Open the Door (PAX)</option><option value="TV installed">TV Installed</option><option value="Power Connected">Powering On</option><option value="Patch cable">Patch Cable (PAX) / LAN Connected (Crew)</option><option value="AP">AP (PAX TV 1)</option><option value="Fully Configured">Fully Configured</option><option value="Tested">Tested</option><option value="Held Up">Held Up</option><option value="__LOCKED__">🔒 Locked cabins</option></select></label>
+      <label>Category Status<select id="checklistState"><option value="all">All</option><option value="pending">Needs checking / No</option><option value="done">Checked / Yes</option></select></label>
+      <label id="excelUploadWrap" hidden>Upload Excel cabin list<input id="excelCabinFile" type="file" accept=".xlsx,.xls,.csv"></label>
+      <div class="actions">
+        <button class="btn" type="button" id="refresh">Refresh Now</button>
+        <button class="btn secondary" type="button" id="reset">Reset</button>
+        <button class="btn secondary" type="button" id="clearExcelFilter" hidden>Clear Excel Filter</button>
+        <button class="btn" type="button" id="saveUploadedRemarks" hidden>Save Uploaded Remarks to Cabins</button>
+        <span id="excelUploadStatus" class="muted" hidden>Upload .xlsx, .xls or .csv to limit the list to those cabins. A Remarks column is shown on each cabin and can be saved (technician assignments: use the Excel block in Technician Cabin Assignments). A Batch Tick panel lets you tick checklist items on all of them at once.</span>
+        <span id="refreshStatus" class="muted">Auto-refresh every 30 seconds</span>
+      </div>
+    </div>
+  </section>
+  <section class="panel cabinView" id="batchPanel" hidden>
+    <h2>Batch Tick Checklist</h2>
+    <div class="muted" id="batchInfo"></div>
+    <div class="batchChecks" id="batchFields">
+      <label class="batchOpt"><input type="checkbox" value="TV installed">TV Installed</label>
+      <label class="batchOpt"><input type="checkbox" value="Power Connected">Powering On</label>
+      <label class="batchOpt"><input type="checkbox" value="Patch cable">Patch Cable / LAN Connected</label>
+      <label class="batchOpt"><input type="checkbox" value="AP">AP (Guest TV 1 only)</label>
+      <label class="batchOpt"><input type="checkbox" value="Security to Open the Door">🔐 Security to Open the Door (Guest only)</label>
+      <label class="batchOpt"><input type="checkbox" value="Tested">Tested</label>
+      <label class="batchOpt"><input type="checkbox" value="Fully Configured">Fully Configured</label>
+      <label class="batchOpt"><input type="checkbox" value="Held Up">Held Up</label>
+      <label class="batchOpt"><input type="checkbox" value="No TV Here">No TV Here</label>
+    </div>
+    <div class="muted">Crew cabins: TV Installed, Powering On and LAN Connected are always ticked / unticked together. AP and Security to Open the Door apply to Guest (PAX) cabins only.</div>
+    <div class="batchRow">
+      <label>Apply To<select id="batchTarget"><option value="selected">Selected cabins</option><option value="shown">All cabins shown in the list</option></select></label>
+      <label>Which TVs<select id="batchScope"><option value="all">All TVs in each cabin (TV 1, TV 2, TV 3)</option><option value="tv1">TV 1 only</option></select></label>
+      <label>Action<select id="batchAction"><option value="tick">Tick (set to YES)</option><option value="untick">Untick (set to NO)</option></select></label>
+    </div>
+    <div class="batchActions">
+      <button class="btn" type="button" id="batchApply">Apply to cabins</button>
+      <span id="batchMsg" class="muted"></span>
+    </div>
+  </section>
+  <div class="result cabinView"><h2 id="listTitle">Cabin Checklist</h2><span class="muted" id="count">Loading cabins…</span></div>
+  <div class="cabin-tabs cabinView" id="cabinTabs" role="tablist" aria-label="Guest or crew cabins">
+    <button type="button" role="tab" data-type="PAX">Guest (PAX) <b id="tabCountPAX"></b></button>
+    <button type="button" role="tab" data-type="CREW">Crew <b id="tabCountCREW"></b></button>
+    <button type="button" role="tab" data-type="ALL">All <b id="tabCountALL"></b></button>
+    <span class="cabin-tabs-hint">Swipe the cabins ← → to switch</span>
+  </div>
+  <div class="bulk cabinView" id="bulkBar" hidden>
+    <button type="button" class="btn secondary" id="bulkSelectShown" data-adminonly hidden>Select all shown</button>
+    <button type="button" class="btn secondary" id="bulkClear" data-adminonly hidden>Clear selection</button>
+    <span id="bulkCount" class="muted" data-adminonly hidden>0 selected</span>
+    <button type="button" class="btn secondary" id="bulkGoBatch" data-adminonly hidden>Batch tick selected ↑</button>
+    <button type="button" class="btn secondary" id="bulkLock" data-adminonly hidden>🔒 Lock selected</button>
+    <button type="button" class="btn secondary" id="bulkUnlock" data-adminonly hidden>Unlock selected</button>
+    <button type="button" class="btn" id="bulkSaveAll" disabled>Save all changed cabins (0)</button>
+    <span id="bulkMsg" class="muted"></span>
+  </div>
+  <div id="grid" class="grid cabinView"></div>
+  <div id="gridMore" class="cabinView" style="text-align:center;margin:16px 0" hidden><button type="button" class="btn secondary" id="showMoreBtn">Show more cabins</button></div>
+  <div id="empty" class="empty cabinView" hidden>No cabins match your filters.</div>
+  <div class="footer"><b>NCL ESCAPE</b> · Entertainment Technical Support · Keep our Crew and Guests Connected · Data is saved in the linked Google Sheet.<br><span id="scriptVersion">Script version: checking…</span></div>
+</main>
+<div id="tickModal" class="tick-modal" role="dialog" aria-modal="true" aria-labelledby="tickTitle">
+  <div class="tick-box">
+    <h3 id="tickTitle"></h3>
+    <div class="tick-where" id="tickWhere"></div>
+    <p class="tick-text" id="tickText"></p>
+    <label for="tickComment" id="tickLabel">Comment (required)</label>
+    <textarea id="tickComment" maxlength="500"></textarea>
+    <div class="tick-err" id="tickErr" role="alert"></div>
+    <div class="tick-btns">
+      <button type="button" class="btn secondary" id="tickCancel">Cancel</button>
+      <button type="button" class="btn tick-ok" id="tickOk">Yes, tick it</button>
+    </div>
+  </div>
+</div>
+<div id="focusOverlay" class="focus-overlay" role="dialog" aria-modal="true" aria-labelledby="focusTitle">
+  <div class="focus-bar">
+    <button type="button" class="focus-close" id="focusClose" aria-label="Close full screen">✕</button>
+    <button type="button" id="focusPrev" aria-label="Previous cabin">‹</button>
+    <div class="focus-head"><div class="focus-title" id="focusTitle">Cabin</div><div class="focus-pos" id="focusPos"></div></div>
+    <button type="button" id="focusNext" aria-label="Next cabin">›</button>
+  </div>
+  <div class="focus-body" id="focusBody"></div>
+</div>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+// ---------------------------------------------------------------- constants
+const SESSION_KEY = 'nclEscapeTrackerSessionId', AUTH_KEY = 'nclEscapeTrackerAuthToken', PENDING_KEY = 'NCL_PAX_CREW_TV_PENDING_V1';
+const SECURITY_DOOR = 'Security to Open the Door'; // PAX only, one per cabin, does not change the status
+const PAX_CHECKS = ['No TV Here',SECURITY_DOOR,'TV installed','Power Connected','Patch cable','AP','Fully Configured','Tested','Held Up'];
+const CREW_CHECKS = ['No TV Here','TV installed','Power Connected','Patch cable','Fully Configured','Tested','Held Up']; // Patch cable shows as "LAN Connected" on crew cabins
+const PAX_EXTRA_TV_CHECKS = ['No TV Here','TV installed','Power Connected','Patch cable','Fully Configured','Tested','Held Up']; // TV 2/3: no AP, no Security
+const TECHS = ['Julius T','Alana','Cesar','Roland','Julius L','TV Check 1','TV Check 2','TV Check 3','TV Check 4','TV Check 5','TV Check 6'];
+const CREW_LINKED = ['TV installed','Power Connected','Patch cable']; // crew: TV Installed = Powering On = LAN Connected
+// ---------------------------------------------------------------- state
+let sessionId = '';
+try { sessionId = sessionStorage.getItem(SESSION_KEY) || ''; } catch (_) {}
+if (!sessionId) { sessionId = 'sess-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10); try { sessionStorage.setItem(SESSION_KEY, sessionId); } catch (_) {} }
+let cabins = [], statusFilter = 'all', checkFilter = '', editorUnlocked = false, authToken = '', activeCabin = '';
+let loadInFlight = false, reloadQueued = false, lastSignature = '', filtered = [], pendingQueue = [], retryInFlight = false;
+// Cabin cards are drawn a page at a time (Julius L sees every cabin; drawing them all at once made the page slow).
+const PAGE_SIZE = window.matchMedia('(max-width: 700px)').matches ? 30 : 60, ASSIGN_LIMIT = 300;
+let pageLimit = PAGE_SIZE, renderedCount = 0, lastFilterKey = '';
+let lockTicked = false; // set by Julius L: other technicians cannot untick saved YES items
+function lockedFor(on, rowLocked) { return !!on && (lockTicked || !!rowLocked) && editorUnlocked && !isAdmin(); }
+let uploadedAssignments = new Map(), uploadedWhat = new Map(), uploadedBadTechs = 0;
+let uploadedCabinKeys = null, uploadedRemarks = new Map(), categoryFilter = '', categoryState = 'all';
+let excelAssignSelection = false;
+const selectedAssignRows = new Set(), activeTechs = new Set(), selectedCabins = new Set();
+let batchSaveRunning = false;
+// ---------------------------------------------------------------- helpers
+function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function yes(v) { return v === true || ['yes','true','1','y','checked'].includes(String(v == null ? '' : v).trim().toLowerCase()); }
+function errText(e) { return (e && e.message) || String(e || 'Request failed'); }
+function fieldLabel(v) { return ({'__LOCKED__':'🔒 Locked','TV installed':'TV Installed','Power Connected':'Powering On','Patch cable':'Patch Cable','AP':'AP (Access Point)','Security to Open the Door':'🔐 Security to Open the Door'})[v] || v; }
+function checkLabel(c, v) { return (!isPax(c) && v === 'Patch cable') ? 'LAN Connected' : fieldLabel(v); }
+function isPax(c) { return String(c && c.cabinType || '').toUpperCase() === 'PAX'; }
+function checksForCabin(c) { return isPax(c) ? PAX_CHECKS : CREW_CHECKS; }
+function tvFieldName(n, label) { return Number(n) === 1 ? label : 'TV ' + n + ' ' + (label === 'TV installed' ? 'Installed' : label); }
+function tvCountOf(c) { return Math.min(3, Math.max(1, Number(c && c.tvCount) || 1)); }
+function tvChecksForCabin(c, n) {
+  if (n === 1) return checksForCabin(c).map(l => ({ field: l, label: l }));
+  return (isPax(c) ? PAX_EXTRA_TV_CHECKS : CREW_CHECKS).map(l => ({ field: tvFieldName(n, l), label: l }));
+}
+function isChecklistField(f) { return PAX_CHECKS.includes(f) || /^TV [23] /.test(f); }
+function getStatus(c) {
+  let all = true, any = false;
+  checksForCabin(c).forEach(k => { if (k === SECURITY_DOOR) return; const v = yes(c[k]); if (v) any = true; if (k === 'Fully Configured' && !v) all = false; });
+  return all ? 'Fully Configured' : any ? 'In Progress' : 'Not Started';
+}
+function pillClass(st) { return st === 'Fully Configured' ? 'done' : st === 'In Progress' ? 'progress' : ''; }
+function techClass(name) { const n = String(name || '').trim().toLowerCase().replace(/\s+/g, '-'); return TECHS.map(t => t.toLowerCase().replace(/\s+/g, '-')).includes(n) ? 'tech-' + n : 'tech-unassigned'; }
+function chosenTech() { return $('activeTech').value || ''; }
+function isAdmin() { return editorUnlocked && chosenTech() === 'Julius L'; }
+function msg(text, kind) { const e = $('msg'); e.textContent = text; e.className = 'msg show ' + (kind || 'success'); }
+function setRefreshStatus(t) { $('refreshStatus').textContent = t; }
+function presenceMarkup(name) {
+  const t = String(name || '').trim();
+  if (!t) return '<div class="presenceTag" data-presence="">UNASSIGNED</div>';
+  const on = activeTechs.has(t);
+  return '<div class="presenceTag' + (on ? ' online' : '') + '" data-presence="' + esc(t) + '">' + (on ? '● ONLINE · ' : '○ OFFLINE · ') + 'Assigned to ' + esc(t) + '</div>';
+}
+function updatePresenceTags() {
+  document.querySelectorAll('[data-presence]').forEach(el => {
+    const t = el.dataset.presence; if (!t) return;
+    const on = activeTechs.has(t);
+    el.classList.toggle('online', on);
+    el.textContent = (on ? '● ONLINE · ' : '○ OFFLINE · ') + 'Assigned to ' + t;
+  });
+}
+// ---------------------------------------------------------------- No TV Here / Held Up confirm pop-up
+const TICK_CONFIRM = {
+  'No TV Here': { title: 'Are you sure there is no TV here?', color: '#8aa0c0',
+    text: 'Only tick "No TV Here" when there is really no TV position at this place. This TV will no longer be counted as a TV to install.',
+    label: 'Comment — why is there no TV here? (required)', placeholder: 'e.g. No bracket or TV point in this room, checked with housekeeping…', ok: 'Yes, no TV here' },
+  'Held Up': { title: 'Held Up = there is a back job', color: '#ff3d71',
+    text: 'Tick "Held Up" only when this TV needs a back job: work that cannot be finished now and someone must come back to do it.',
+    label: 'Comment — what is the back job? (required)', placeholder: 'e.g. Waiting for LAN cable from IT, no power socket, guest DND…', ok: 'Yes, it is held up' }
+};
+let tickDone = null;
+function confirmTick(label, where, onOk) {
+  const cfg = TICK_CONFIRM[label];
+  $('tickModal').style.setProperty('--tm', cfg.color);
+  $('tickTitle').textContent = cfg.title;
+  $('tickWhere').textContent = where;
+  $('tickText').textContent = cfg.text;
+  $('tickLabel').textContent = cfg.label;
+  $('tickComment').value = ''; $('tickComment').placeholder = cfg.placeholder;
+  $('tickErr').textContent = '';
+  $('tickOk').textContent = cfg.ok;
+  tickDone = onOk;
+  $('tickModal').classList.add('open');
+  setTimeout(() => $('tickComment').focus(), 50);
+}
+function closeTick() { $('tickModal').classList.remove('open'); tickDone = null; }
+function appendRemark(textarea, line) {
+  if (!textarea) return;
+  const cur = textarea.value.trim();
+  textarea.value = (cur ? cur + '\n' + line : line).slice(0, 2000);
+  textarea.dispatchEvent(new Event('input'));
+}
+function initTickModal() {
+  $('tickCancel').addEventListener('click', closeTick);
+  $('tickModal').addEventListener('click', ev => { if (ev.target === $('tickModal')) closeTick(); });
+  $('tickComment').addEventListener('input', () => { $('tickErr').textContent = ''; });
+  $('tickOk').addEventListener('click', () => {
+    const comment = $('tickComment').value.trim().replace(/\s+/g, ' ');
+    if (comment.length < 3) { $('tickErr').textContent = 'Please write a comment first.'; $('tickComment').focus(); return; }
+    const fn = tickDone; closeTick(); if (fn) fn(comment);
+  });
+  document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && $('tickModal').classList.contains('open')) { ev.stopPropagation(); closeTick(); } }, true);
+}
+// ---------------------------------------------------------------- loading
+function load(force) {
+  if (loadInFlight) { if (force) reloadQueued = true; return; }
+  loadInFlight = true;
+  setRefreshStatus('Refreshing cabin data…');
+  google.script.run.withSuccessHandler(s => {
+    loadInFlight = false;
+    const next = s && Array.isArray(s.cabins) ? s.cabins : [];
+    const lk = !!(s && s.lockTicked), lockChanged = lk !== lockTicked;
+    lockTicked = lk; if (lockChanged) updateLockUi();
+    const sig = JSON.stringify(next) + '|lock:' + lockTicked, changed = sig !== lastSignature;
+    cabins = next;
+    if (s && s.dataVersion) dataVersion = String(s.dataVersion);
+    if (changed || force || !document.querySelector('#grid .cabin')) { lastSignature = sig; populateDecks(); if (focusCard) pendingRender = true; else render(); }
+    if (s && s.stats) applyStats(s.stats);
+    if (s) applyVenueSnapshot(s);
+    if (isAdmin()) { populateAssignmentDecks(); renderAssignmentList(); renderTechnicians(); }
+    setRefreshStatus('Last updated ' + new Date().toLocaleTimeString() + (changed ? ' · data updated' : ' · no changes'));
+    if (reloadQueued) { reloadQueued = false; setTimeout(() => load(true), 50); }
+  }).withFailureHandler(e => {
+    loadInFlight = false;
+    if (reloadQueued) { reloadQueued = false; setTimeout(() => load(true), 50); }
+    setRefreshStatus('Refresh failed · use Refresh Now');
+    msg('Unable to load cabins: ' + errText(e), 'error');
+  }).getTrackerSnapshot(authToken);
+}
+const SB_COLOR = {'Security to Open the Door':'var(--c-secdoor)','none':'var(--c-none)','TV installed':'var(--c-installed)','Power Connected':'var(--c-powering)','Patch cable':'var(--c-patch)','AP':'var(--c-ap)','Tested':'var(--c-tested)','Fully Configured':'var(--c-configured)','No TV Here':'var(--c-notv)','Held Up':'var(--c-held)','__REMARKS__':'var(--c-remarks)'};
+const SB_STAT_KEY = {'Security to Open the Door':'securityDoor','TV installed':'tvInstalled','Power Connected':'powerConnected','Patch cable':'patchCable','AP':'apCount','Tested':'testedCount','Fully Configured':'configured','No TV Here':'noTvHere','Held Up':'heldUpCount','__REMARKS__':'withRemarks'};
+const SB_GATES = { PAX: ['TV installed','Power Connected','Patch cable','AP','Tested','Fully Configured'], CREW: ['TV installed','Power Connected','Patch cable','Tested','Fully Configured'] };
+let lastStats = null;
+function sbPct(n, t) { return t ? String(Math.round(n / t * 1000) / 10) : '0'; }
+function stageOf(c) { let st = 'none'; (SB_GATES[isPax(c) ? 'PAX' : 'CREW']).forEach(g => { if (yes(c[g])) st = g; }); return st; }
+function sbCard(type, x) {
+  x = x || {}; const n = Number(x.total || 0), gates = SB_GATES[type], cnt = k => Number(x[SB_STAT_KEY[k]] || 0);
+  const overall = n ? gates.reduce((a, k) => a + cnt(k) / n, 0) / gates.length * 100 : 0;
+  const attr = (k, v) => 'data-type="' + type + '" data-' + k + '="' + esc(v) + '"';
+  const st = (v, label, num, col) => '<button type="button" class="sb-st" style="--gc:' + col + '" ' + attr('status', v) + '><span>' + label + '</span><strong>' + Number(num || 0).toLocaleString() + '</strong></button>';
+  const tl = k => (type === 'CREW' && k === 'Patch cable') ? 'LAN Connected' : fieldLabel(k);
+  const gate = k => { const c = cnt(k), p = sbPct(c, n);
+    return '<button type="button" class="sb-gate" style="--gc:' + SB_COLOR[k] + '" title="' + esc(tl(k)) + ': ' + c + ' of ' + n + '" ' + attr('check', k) + '><div class="sb-gl"><span class="sb-sq"></span>' + esc(k === 'AP' ? 'AP (TV 1)' : tl(k)) + '</div><div class="sb-pct">' + p + '%</div><div class="sb-of">' + c.toLocaleString() + ' of ' + n.toLocaleString() + '</div><div class="sb-track"><i style="width:' + p + '%"></i></div></button>'; };
+  const stages = x.stages || {}, order = ['none'].concat(gates), lab = k => k === 'none' ? 'Not started' : (k === 'AP' ? 'AP (TV 1)' : tl(k));
+  const segs = order.filter(k => stages[k]).map(k => '<button type="button" style="--gc:' + SB_COLOR[k] + ';width:' + (stages[k] / n * 100).toFixed(2) + '%" title="' + esc(lab(k)) + ': ' + stages[k] + '" aria-label="' + esc(lab(k)) + ': ' + stages[k] + '" ' + attr('stage', k) + '></button>').join('');
+  const legend = order.filter(k => stages[k]).map(k => '<button type="button" style="--gc:' + SB_COLOR[k] + '" ' + attr('stage', k) + '><span class="sb-sq"></span>' + esc(lab(k)) + ' <b>' + Number(stages[k]).toLocaleString() + '</b></button>').join('');
+  const flag = (k, label) => '<button type="button" class="sb-flag" style="--gc:' + SB_COLOR[k] + '" ' + attr('check', k) + '><span class="sb-sq"></span>' + label + ' <b>' + cnt(k).toLocaleString() + '</b></button>';
+  return '<div class="sb-card"><div class="sb-head"><div class="sb-title">' + (type === 'PAX' ? 'Guest (PAX) Cabins' : 'Crew Cabins') + '</div><div class="sb-tag">' + n.toLocaleString() + ' CABINS</div></div>' +
+    '<button type="button" class="sb-ov" ' + attr('status', 'all') + '><div class="sb-ov-cap">Overall progress</div><div class="sb-ov-row"><div class="sb-big">' + (Math.round(overall * 10) / 10) + '<small>%</small></div>' +
+    '<div class="sb-ov-sub"><b>' + sbPct(cnt('TV installed'), n) + '%</b> installed · <b>' + sbPct(cnt('Tested'), n) + '%</b> tested · <b>' + sbPct(Number(x.fullyConfigured || 0), n) + '%</b> fully configured</div></div>' +
+    '<div class="sb-track"><i style="width:' + Math.min(100, overall).toFixed(1) + '%"></i></div></button>' +
+    '<div class="sb-status">' + st('all', 'Total Cabins', n, '#00e5ff') + st('Fully Configured', 'Fully Configured', x.fullyConfigured, 'var(--c-done)') + st('In Progress', 'In Progress', x.inProgress, 'var(--c-prog)') + st('Not Started', 'Not Started', x.notStarted, 'var(--c-ns)') + '</div>' +
+    '<div class="sb-gates' + (gates.length === 4 ? ' two' : '') + '">' + gates.map(gate).join('') + '</div>' +
+    '<div class="sb-stack" role="img" aria-label="Furthest stage reached">' + (segs || '<button type="button" style="--gc:var(--c-none);width:100%"></button>') + '</div>' +
+    '<div class="sb-legend">' + (legend || '<span class="sb-of">No cabins yet</span>') + '</div>' +
+    '<div class="sb-flags">' + flag('No TV Here', 'No TV Here') + (type === 'PAX' ? flag(SECURITY_DOOR, '🔐 Security to Open Door') : '') + flag('Held Up', 'Held Up') + flag('__REMARKS__', 'With Remarks') + '</div></div>';
+}
+function markBoardActive() {
+  const t = $('type').value;
+  document.querySelectorAll('#statusBoard [data-type]').forEach(b => {
+    const d = b.dataset; let on = false;
+    if (d.type === t) {
+      if (d.status) on = !checkFilter && d.status === statusFilter && d.status !== 'all';
+      else if (d.check) on = checkFilter === d.check;
+      else if (d.stage) on = checkFilter === '__STAGE__:' + d.stage;
+    }
+    b.classList.toggle('active', on);
+  });
+  document.querySelectorAll('#tvCountBoard [data-tvtype]').forEach(b => {
+    b.classList.toggle('active', checkFilter === '__TVTODO__' && b.dataset.tvtype === t);
+  });
+}
+// ---------------------------------------------------------------- TV count (Guest + Crew)
+/** TV stages: Fully Configured = done; TV Installed ticked = in progress; otherwise not started.
+ *  TVs marked "No TV Here" are not needed. */
+function tvTally(c) {
+  const n = tvCountOf(c); let exp = 0, ins = 0, prog = 0, done = 0;
+  for (let k = 1; k <= n; k++) {
+    if (yes(c[tvFieldName(k, 'No TV Here')])) continue;
+    exp++;
+    const i = yes(c[tvFieldName(k, 'TV installed')]), d = i && yes(c[tvFieldName(k, 'Fully Configured')]); // counted only when TV Installed is ticked
+    if (i) ins++;
+    if (d) done++; else if (i) prog++;
+  }
+  return { exp, ins, prog, done, left: exp - ins };
+}
+const TV_STAGE_COL = { notStarted: '#8aa0c0', inProgress: '#ffb703', done: '#39ff88' };
+function tvCard(key, title, x, col) {
+  x = x || {};
+  const exp = Number(x.tvExpected || 0), ins = Number(x.tvsInstalled || 0), left = Math.max(0, exp - ins), p = sbPct(ins, exp);
+  const prog = Number(x.tvInProgress || 0), done = Number(x.tvDone || 0), ns = Number(x.tvNotStarted != null ? x.tvNotStarted : left);
+  const w = v => exp ? (v / exp * 100).toFixed(2) : '0';
+  const stage = (label, v, c) => '<div class="tvc-st" style="--sc:' + c + '"><span>' + label + '</span><strong>' + v.toLocaleString() + '</strong></div>';
+  const on = checkFilter === '__TVTODO__' && $('type').value === key;
+  return '<button type="button" class="tvc-card' + (on ? ' active' : '') + '" style="--gc:' + col + '" data-tvtype="' + key + '" title="Show cabins that still need TVs">' +
+    '<div class="tvc-cap">' + title + '</div>' +
+    '<div class="tvc-big">' + ins.toLocaleString() + '<small> / ' + exp.toLocaleString() + ' TVs installed</small></div>' +
+    '<div class="tvc-sub"><b>' + p + '%</b> installed · <b>' + left.toLocaleString() + '</b> still to install</div>' +
+    '<div class="tvc-stages">' + stage('Not started', ns, TV_STAGE_COL.notStarted) + stage('In progress', prog, TV_STAGE_COL.inProgress) + stage('Fully configured', done, TV_STAGE_COL.done) + '</div>' +
+    '<div class="tvc-bar" role="img" aria-label="Done ' + done + ', in progress ' + prog + ', not started ' + ns + '">' +
+      '<i style="--sc:' + TV_STAGE_COL.done + ';width:' + w(done) + '%"></i><i style="--sc:' + TV_STAGE_COL.inProgress + ';width:' + w(prog) + '%"></i></div>' +
+    '<div class="tvc-foot">' + Number(x.total || 0).toLocaleString() + ' cabins · ' + Number(x.tvNoTv || 0).toLocaleString() + ' TV position(s) marked No TV Here</div></button>';
+}
+function renderTvCount(s) {
+  if (!s) return;
+  $('tvCountBoard').innerHTML =
+    '<div class="tvc-head"><h2>TVs Installed — Guest and Crew</h2><span class="muted">A TV is counted only when its <b>TV Installed</b> box is ticked (TV 1, TV 2, TV 3). Installed TVs show as <b>In progress</b> until Fully Configured is also ticked. “No TV Here” TVs are not counted. Tap a card to list cabins still needing TVs.</span></div>' +
+    '<div class="tvc-grid">' + tvCard('PAX', 'Guest (PAX) TVs', s.pax, '#00e5ff') + tvCard('CREW', 'Crew TVs', s.crew, '#c77dff') + tvCard('ALL', 'Ship Total — All TVs', s, '#39ff88') + '</div>';
+}
+function applyStats(s) {
+  lastStats = s;
+  $('statusBoard').innerHTML = sbCard('PAX', s.pax) + sbCard('CREW', s.crew);
+  renderTvCount(s);
+  markBoardActive();
+  renderDecks(s.decks || {});
+}
+function renderDecks(ds) {
+  const keys = Object.keys(ds).sort((a, b) => Number(a) - Number(b));
+  $('deckRows').innerHTML = keys.length ? keys.map(d => {
+    const x = ds[d];
+    return '<tr><td>Deck ' + esc(d) + '</td>' +
+      '<td><button data-deck="' + esc(d) + '" data-type="PAX">' + x.pax + '</button></td>' +
+      '<td><button data-deck="' + esc(d) + '" data-type="CREW">' + x.crew + '</button></td>' +
+      '<td><button data-deck="' + esc(d) + '" data-type="ALL">' + x.total + '</button></td>' +
+      '<td><button data-deck="' + esc(d) + '" data-st="Fully Configured">' + x.fullyConfigured + '</button></td>' +
+      '<td><button data-deck="' + esc(d) + '" data-st="In Progress">' + x.inProgress + '</button></td>' +
+      '<td><button data-deck="' + esc(d) + '" data-st="Not Started">' + x.notStarted + '</button></td>' +
+      '<td>' + Number(x.tvInstalled || 0).toLocaleString() + ' / ' + Number(x.tvExpected || 0).toLocaleString() + '</td>' +
+      '<td>' + Number(x.tvInProgress || 0).toLocaleString() + '</td>' +
+      '<td>' + Math.max(0, Number(x.tvExpected || 0) - Number(x.tvInstalled || 0)).toLocaleString() + '</td></tr>';
+  }).join('') : '<tr><td colspan="10">No data.</td></tr>';
+  $('deckRows').querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    if (b.dataset.type) $('type').value = b.dataset.type;
+    populateDecks();
+    $('deck').value = b.dataset.deck;
+    statusFilter = b.dataset.st || 'all';
+    $('status').value = statusFilter;
+    checkFilter = '';
+    render();
+    $('listTitle').scrollIntoView({ block: 'start' });
+  }));
+}
+function populateDecks() {
+  const old = $('deck').value, t = $('type').value;
+  const ds = [...new Set(cabins.filter(c => t === 'ALL' || c.cabinType === t).map(c => String(c.deck || '')))].filter(Boolean).sort((a, b) => Number(a) - Number(b));
+  $('deck').innerHTML = '<option value="">All Decks</option>' + ds.map(d => '<option value="' + esc(d) + '">Deck ' + esc(d) + '</option>').join('');
+  if (ds.includes(old)) $('deck').value = old;
+}
+function loadHistory() {
+  google.script.run.withSuccessHandler(rows => {
+    $('historyRows').innerHTML = (!rows || !rows.length) ? '<div>No updates recorded yet.</div>' :
+      rows.map(r => '<div><b>' + esc(r.technician) + '</b> · ' + (r.cabinType === 'SESSION' ? 'User activity' : esc(r.cabinType + ' ' + r.cabin)) +
+        ' · ' + esc(r.changes) + (r.status ? ' · ' + esc(r.status) : '') + ' · ' + esc(r.timestamp) + '</div>').join('');
+  }).withFailureHandler(() => {}).getUpdateHistory(20);
+}
+// ---------------------------------------------------------------- filtering / rendering
+function normCabin(v) { return String(v == null ? '' : v).trim().toUpperCase().replace(/\s+/g, ''); }
+function cabinLookupKeys(c) {
+  const cabin = normCabin(c.cabin), type = String(c.cabinType || '').toUpperCase(), bare = cabin.replace(/^C(?=\d)/, '');
+  return [type + ':' + cabin, type + ':' + bare, type + ':C' + bare, cabin, bare, 'C' + bare];
+}
+function uploadedMatch(c) {
+  if (!uploadedCabinKeys) return true;
+  return cabinLookupKeys(c).some(k => uploadedCabinKeys.has(k));
+}
+function uploadedRemarkFor(c) {
+  if (!uploadedRemarks.size) return '';
+  const k = cabinLookupKeys(c).find(x => uploadedRemarks.has(x));
+  return k ? uploadedRemarks.get(k) : '';
+}
+function pendingUploadedRemarks() {
+  if (!uploadedCabinKeys || !uploadedRemarks.size) return [];
+  return cabins.filter(uploadedMatch).map(c => ({ cabin: c.cabin, cabinType: c.cabinType, remark: uploadedRemarkFor(c) }))
+    .filter(x => x.remark && String(findLocalCabin(x.cabinType, x.cabin).comments || '').indexOf(x.remark) === -1);
+}
+function updateUploadedRemarksButton() {
+  const n = pendingUploadedRemarks().length, b = $('saveUploadedRemarks');
+  b.hidden = !n || !isAdmin();
+  b.textContent = 'Save Uploaded Remarks to ' + n + ' Cabin' + (n === 1 ? '' : 's');
+  const a = pendingUploadedAssignments().length, ab = $('saveUploadedAssignments');
+  ab.hidden = !a || !isAdmin();
+  ab.textContent = 'Save Assignments from Excel (' + a + ' Cabin' + (a === 1 ? '' : 's') + ')';
+}
+function uploadedWhatFor(c) {
+  if (!uploadedWhat.size) return undefined;
+  const k = cabinLookupKeys(c).find(x => uploadedWhat.has(x));
+  return k ? uploadedWhat.get(k) : undefined;
+}
+function uploadedAssignmentFor(c) {
+  if (!uploadedAssignments.size) return undefined;
+  const k = cabinLookupKeys(c).find(x => uploadedAssignments.has(x));
+  return k ? uploadedAssignments.get(k) : undefined;
+}
+function pendingUploadedAssignments() {
+  if (!uploadedCabinKeys || (!uploadedAssignments.size && !uploadedWhat.size)) return [];
+  return cabins.filter(uploadedMatch).map(c => {
+    const t = uploadedAssignmentFor(c), w = uploadedWhatFor(c);
+    const it = { rowNumber: c.rowNumber, cabin: c.cabin, cabinType: c.cabinType };
+    if (t !== undefined && String(c.assignedTo || '').trim() !== t) it.technician = t;
+    if (w !== undefined && String(c.whatToCheck || '').trim() !== w) it.whatToCheck = w;
+    return it;
+  }).filter(it => 'technician' in it || 'whatToCheck' in it);
+}
+function saveUploadedAssignments() {
+  if (!isAdmin() || !authToken) { msg('Sign in as Julius L to save uploaded assignments.', 'error'); return; }
+  const items = pendingUploadedAssignments();
+  if (!items.length) { msg('All uploaded assignments are already saved.', 'success'); return; }
+  const per = {};
+  items.forEach(x => { if ('technician' in x) { const t = x.technician || 'Unassigned'; per[t] = (per[t] || 0) + 1; } });
+  const nWhat = items.filter(x => 'whatToCheck' in x).length;
+  if (!confirm('Update ' + items.length + ' cabin(s) from the Excel list?\n' + Object.keys(per).map(t => t + ': ' + per[t]).join('\n') +
+    (nWhat ? '\nWhat to Check: ' + nWhat + ' cabin(s)' : ''))) return;
+  const b = $('saveUploadedAssignments'); b.disabled = true; b.textContent = 'Saving assignments…';
+  google.script.run.withSuccessHandler(r => {
+    b.disabled = false;
+    if (!r || !r.success) { msg((r && r.message) || 'Could not save the uploaded assignments.', 'error'); if (r && r.unauthorized) logout(true); updateUploadedRemarksButton(); return; }
+    const changed = new Map((r.assignments || []).map(x => [cabinKeyOf(x.cabinType, x.cabin), x]));
+    cabins.forEach(c => { const x = changed.get(keyOfCabin(c)); if (x) { c.assignedTo = x.assignedTo || ''; c.whatToCheck = x.whatToCheck || ''; } });
+    if (r.dataVersion) dataVersion = String(r.dataVersion);
+    lastSignature = JSON.stringify(cabins);
+    render(); renderTechnicians(); renderAssignmentList(); loadHistory();
+    $('assignExcelStatus').textContent = r.message;
+    msg(r.message, 'success');
+  }).withFailureHandler(e => { b.disabled = false; updateUploadedRemarksButton(); msg('Saving assignments from Excel failed: ' + errText(e), 'error'); $('assignExcelStatus').textContent = 'Save failed: ' + errText(e); })
+    .importUploadedAssignments(authToken, sessionId, items);
+}
+function categoryMatch(c) {
+  const f = categoryFilter;
+  if (!f) return true;
+  if (f === '__LOCKED__') return categoryState === 'pending' ? !c.locked : !!c.locked;
+  if (!isPax(c) && (f === 'AP' || f === SECURITY_DOOR)) return false;
+  const on = yes(c[f]);
+  return categoryState === 'pending' ? !on : categoryState === 'done' ? on : true;
+}
+function checkMatch(c) {
+  if (!checkFilter) return true;
+  if (checkFilter === '__TVTODO__') return tvTally(c).left > 0;
+  if (checkFilter === '__REMARKS__') return !!String(c.comments || '').trim();
+  if (checkFilter.indexOf('__STAGE__:') === 0) return stageOf(c) === checkFilter.slice(10);
+  return checksForCabin(c).includes(checkFilter) && yes(c[checkFilter]);
+}
+function render() {
+  const q = $('search').value.trim().toLowerCase(), t = $('type').value, d = $('deck').value, s = $('status').value, at = $('assignedTech').value;
+  filtered = cabins.filter(c =>
+      (t === 'ALL' || c.cabinType === t) &&
+      (!q || String(c.cabin).toLowerCase().includes(q) || String(c.comments || '').toLowerCase().includes(q) || String(c.whatToCheck || '').toLowerCase().includes(q)) &&
+      (!d || String(c.deck) === d) &&
+      (s === 'all' || getStatus(c) === s) &&
+      checkMatch(c) && categoryMatch(c) && uploadedMatch(c) &&
+      (!at || (at === '__UNASSIGNED__' ? !c.assignedTo : c.assignedTo === at)));
+  const fk = [q, t, d, s, at, checkFilter, categoryFilter, categoryState, uploadedCabinKeys ? uploadedCabinKeys.size : 0].join('|');
+  if (fk !== lastFilterKey) { pageLimit = PAGE_SIZE; lastFilterKey = fk; }
+  const shown = filtered.slice(0, pageLimit);
+  const frag = document.createDocumentFragment();
+  shown.forEach(c => frag.appendChild(card(c)));
+  $('grid').innerHTML = '';
+  $('grid').appendChild(frag);
+  renderedCount = shown.length;
+  $('empty').hidden = filtered.length > 0;
+  $('empty').textContent = editorUnlocked ? 'No cabins match your filters.' : 'Sign in to view and update cabins.';
+  updateMoreButton();
+  $('listTitle').textContent = checkFilter === '__TVTODO__' ? 'Cabins with TVs still to install' :
+    checkFilter === '__REMARKS__' ? 'Cabins with Remarks' :
+    checkFilter === SECURITY_DOOR ? 'Guest cabins needing Security to open the door' :
+    checkFilter.indexOf('__STAGE__:') === 0 ? 'Cabins · furthest stage: ' + (checkFilter.slice(10) === 'none' ? 'Not started' : fieldLabel(checkFilter.slice(10))) :
+    categoryFilter ? 'Cabins · ' + fieldLabel(categoryFilter) :
+    checkFilter ? 'Cabins with ' + fieldLabel(checkFilter) + ' = YES' :
+    at ? (at === '__UNASSIGNED__' ? 'Unassigned Cabins' : at + ' — Assigned Cabins') :
+    s === 'all' ? 'Cabin Checklist' : s + ' Cabins';
+  markBoardActive();
+  updateCabinTabs();
+  updateUploadedRemarksButton();
+  updateBatchPanel();
+  updateBulkBar();
+}
+// ---------------------------------------------------------------- batch selection + batch save
+function selectedCabinList() { return cabins.filter(c => selectedCabins.has(keyOfCabin(c))); }
+function dirtyCards() { return [...document.querySelectorAll('.cabin[data-dirty="true"]')]; }
+function updateBulkBar() {
+  const bar = $('bulkBar'); if (!bar) return;
+  bar.hidden = !editorUnlocked;
+  // Select / batch tick controls: Julius L only.
+  bar.querySelectorAll('[data-adminonly]').forEach(el => { el.hidden = !isAdmin(); });
+  if (!isAdmin()) selectedCabins.clear();
+  // Drop selections for cabins that are no longer in the list.
+  const known = new Set(cabins.map(keyOfCabin));
+  [...selectedCabins].forEach(k => { if (!known.has(k)) selectedCabins.delete(k); });
+  const n = selectedCabins.size, d = dirtyCards().length;
+  $('bulkCount').textContent = n.toLocaleString() + ' cabin' + (n === 1 ? '' : 's') + ' selected';
+  $('bulkGoBatch').disabled = !n; $('bulkLock').disabled = !n; $('bulkUnlock').disabled = !n;
+  const s = $('bulkSaveAll');
+  if (!batchSaveRunning) { s.disabled = !d; s.textContent = 'Save all changed cabins (' + d + ')'; }
+  document.querySelectorAll('.cabin').forEach(a => {
+    const on = selectedCabins.has(cabinKeyOf(a.dataset.type, a.dataset.cabin));
+    a.classList.toggle('selected', on);
+    const box = a.querySelector('[data-select]'); if (box) box.checked = on;
+  });
+}
+function setCabinSelected(type, cabin, on) {
+  const k = cabinKeyOf(type, cabin);
+  on ? selectedCabins.add(k) : selectedCabins.delete(k);
+  updateBulkBar(); updateBatchPanel();
+}
+/** BATCH SAVE: saves every cabin card that has unsaved changes, one after another. */
+function saveAllChanged() {
+  if (!editorUnlocked || !authToken) { msg('Please sign in first.', 'error'); return; }
+  const queue = dirtyCards();
+  if (!queue.length) { $('bulkMsg').textContent = 'No unsaved changes.'; return; }
+  if (!confirm('Save ' + queue.length + ' changed cabin(s) now?')) return;
+  batchSaveRunning = true;
+  const s = $('bulkSaveAll'); s.disabled = true;
+  let ok = 0, failed = 0, i = 0;
+  const next = () => {
+    if (i >= queue.length) {
+      batchSaveRunning = false;
+      const text = 'Batch save finished: ' + ok + ' saved' + (failed ? ', ' + failed + ' need attention (kept in the pending queue)' : '') + '.';
+      $('bulkMsg').textContent = text; msg(text, failed ? 'error' : 'success');
+      updateBulkBar(); loadHistory();
+      if (!failed) load(true);
+      return;
+    }
+    const a = queue[i++];
+    s.textContent = 'Saving ' + i + ' of ' + queue.length + '…';
+    if (!a.isConnected || a.dataset.dirty !== 'true') { next(); return; }
+    save(a, success => { success ? ok++ : failed++; setTimeout(next, 150); });
+  };
+  next();
+}
+// ---------------------------------------------------------------- batch tick
+function batchTargets() {
+  return $('batchTarget').value === 'selected' ? selectedCabinList() : filtered.slice();
+}
+function updateBatchPanel() {
+  const p = $('batchPanel'); if (!p) return;
+  p.hidden = !isAdmin(); // Batch Tick Checklist: Julius L only
+  if (p.hidden) return;
+  const n = batchTargets().length, b = $('batchApply'), sel = $('batchTarget').value === 'selected';
+  $('batchInfo').textContent = (sel
+    ? 'Ticks the chosen items on the ' + n.toLocaleString() + ' cabin(s) you selected (use the Select box on each cabin, or "Select all shown").'
+    : 'Ticks the chosen items on all ' + n.toLocaleString() + ' cabin(s) currently shown in the list' + (uploadedCabinKeys ? ' from your uploaded Excel list' : '') + '. Use the Guest / Crew tabs, filters or an Excel upload to narrow it down.') +
+    (isAdmin() ? '' : ' Only cabins assigned to you are changed.');
+  if (b.textContent !== 'Applying…') { b.disabled = !n; b.textContent = 'Apply to ' + n.toLocaleString() + ' cabin' + (n === 1 ? '' : 's'); }
+}
+function applyBatch() {
+  if (!isAdmin() || !authToken) { msg('Only Julius L can use Batch Tick Checklist.', 'error'); return; }
+  if (dirtyCards().length) { msg('Some cabins have unsaved changes. Press "Save all changed cabins" first, then run the batch tick.', 'error'); return; }
+  const labels = [...document.querySelectorAll('#batchFields input:checked')].map(i => i.value);
+  if (!labels.length) { $('batchMsg').textContent = 'Choose at least one checklist item.'; return; }
+  const items = batchTargets().map(c => ({ cabin: c.cabin, cabinType: c.cabinType }));
+  if (!items.length) { $('batchMsg').textContent = $('batchTarget').value === 'selected' ? 'Select one or more cabins first.' : 'No cabins are shown.'; return; }
+  const tick = $('batchAction').value === 'tick', scope = $('batchScope').value;
+  const names = labels.map(l => l === 'Patch cable' ? 'Patch Cable / LAN Connected' : fieldLabel(l)).join(', ');
+  const crewNote = labels.some(l => CREW_LINKED.includes(l)) ? '\n(Crew cabins: TV Installed, Powering On and LAN Connected change together.)' : '';
+  const paxNote = labels.some(l => l === 'AP' || l === SECURITY_DOOR) ? '\n(AP and Security to Open the Door are only set on Guest (PAX) cabins.)' : '';
+  if (!confirm((tick ? 'TICK (YES): ' : 'UNTICK (NO): ') + names + '\nTVs: ' + (scope === 'all' ? 'all TVs in each cabin' : 'TV 1 only') +
+    '\nCabins: ' + items.length + crewNote + paxNote + '\n\nContinue?')) return;
+  const b = $('batchApply'); b.disabled = true; b.textContent = 'Applying…'; $('batchMsg').textContent = '';
+  const done = () => { b.textContent = ''; updateBatchPanel(); };
+  google.script.run.withSuccessHandler(r => {
+    if (!r || !r.success) { done(); $('batchMsg').textContent = (r && r.message) || 'Batch update failed.'; msg($('batchMsg').textContent, 'error'); if (r && r.unauthorized) logout(true); return; }
+    (r.results || []).forEach(x => {
+      const local = findLocalCabin(x.cabinType, x.cabin);
+      if (!local) return;
+      Object.keys(x.values || {}).forEach(f => { local[f] = !!x.values[f]; });
+      local.status = x.status; local.checkBy = x.checkBy; local.checkedAt = x.checkedAt;
+    });
+    if (r.dataVersion) dataVersion = String(r.dataVersion);
+    lastSignature = JSON.stringify(cabins);
+    done(); render(); loadHistory(); load(true);
+    $('batchMsg').textContent = r.message;
+    msg(r.message, 'success');
+  }).withFailureHandler(e => { done(); $('batchMsg').textContent = 'Batch update failed: ' + errText(e); msg($('batchMsg').textContent, 'error'); })
+    .batchUpdateChecklist(authToken, sessionId, items, labels, scope, tick);
+}
+function card(c) {
+  const st = getStatus(c), tvCount = tvCountOf(c), a = document.createElement('article');
+  a.className = 'cabin ' + techClass(c.assignedTo);
+  a.dataset.row = c.rowNumber;
+  a.dataset.cabin = c.cabin;
+  a.dataset.type = c.cabinType;
+  a.dataset.baseCheckedAt = c.checkedAt || '';
+  a.dataset.baseComments = String(c.comments || '');
+  a.dataset.baseWhat = String(c.whatToCheck || '');
+  const nums = Array.from({ length: tvCount }, (_, i) => i + 1);
+  const fields = nums.flatMap(n => tvChecksForCabin(c, n));
+  a.dataset.baseChecks = JSON.stringify(Object.fromEntries(fields.map(x => [x.field, yes(c[x.field]) ? 'Yes' : 'No'])));
+  const sections = nums.map(n =>
+    '<section class="tv-checklist"><h3>' + (tvCount > 1 ? 'TV ' + n + ' Checklist' : 'Installation Checklist') + '</h3>' +
+    tvChecksForCabin(c, n).map(x => {
+      const on = yes(c[x.field]);
+      const lk = lockedFor(on, c.locked);
+      return '<label class="check' + (x.label === SECURITY_DOOR ? ' secdoor' : '') + '"><input type="checkbox" data-field="' + esc(x.field) + '" data-tv="' + n + '" data-label="' + esc(x.label) + '"' + (on ? ' checked' : '') + (lk ? ' disabled data-locked title="Locked by Julius L"' : '') + '><span>' + esc(checkLabel(c, x.label)) + '</span><small>' + (on ? (lk ? 'YES 🔒' : 'YES') : '') + '</small></label>';
+    }).join('') + '</section>').join('');
+  const assignSelect = isAdmin()
+    ? '<label class="assign">Assigned Technician<select data-assigned-to><option value="">Unassigned</option>' +
+      TECHS.map(t => '<option value="' + esc(t) + '"' + (String(c.assignedTo || '') === t ? ' selected' : '') + '>' + esc(t) + '</option>').join('') + '</select></label>'
+    : '';
+  a.innerHTML =
+    '<div class="head"><div><div class="number">' + esc(c.cabin) + '</div>' +
+    '<div class="meta">' + esc(c.cabinType) + ' · Deck ' + esc(c.deck || '—') + ' · FZ ' + esc(c.fz || '—') + ' · ' + tvCount + ' TV' + (tvCount > 1 ? 's' : '') + '</div></div>' +
+    '<div class="head-actions">' +
+    '<span class="pill ' + pillClass(st) + '">' + esc(st) + '</span>' +
+    '<span class="pill lockpill"' + (c.locked ? '' : ' hidden') + ' title="Locked by Julius L">🔒 LOCKED</span>' +
+    (isAdmin() ? '<label class="selbox lockbox" title="Lock: other technicians cannot untick items saved as YES"><input type="checkbox" data-lockrow' + (c.locked ? ' checked' : '') + '>🔒 Lock</label>' : '') +
+    (isAdmin() ? '<label class="selbox" title="Select for batch tick"><input type="checkbox" data-select' + (selectedCabins.has(keyOfCabin(c)) ? ' checked' : '') + '>Select</label>' : '') +
+    '<button type="button" class="open-full" title="Open full screen">⛶ OPEN</button>' +
+    '<button type="button" class="back-top" title="Back to dashboard">↑ TOP</button></div></div>' +
+    sections +
+    '<label class="remarks">Remarks<textarea data-comments maxlength="2000" placeholder="Add remarks for this cabin — issues, follow-ups, parts needed…">' + esc(c.comments || '') + '</textarea></label>' +
+    '<label class="whatcheck">What to Check<textarea data-whatcheck maxlength="1000" placeholder="What the technician must check in this cabin — e.g. Install TV, AP not working, recheck power…">' + esc(c.whatToCheck || '') + '</textarea></label>' +
+    uploadWhatMarkup(c) +
+    uploadRemarkMarkup(c) +
+    assignSelect + presenceMarkup(c.assignedTo) +
+    '<div class="meta">Last updated by <strong class="last-by">' + esc(c.checkBy || 'Not recorded') + '</strong> · <span class="last-at">' + esc(c.checkedAt || 'Not recorded') + '</span></div>' +
+    '<button type="button" class="btn save">Save Cabin</button>';
+  a.querySelector('.back-top').addEventListener('click', () => $('dashboardTop').scrollIntoView({ block: 'start' }));
+  a.querySelector('.open-full').addEventListener('click', ev => { ev.stopPropagation(); openFocus(a); });
+  a.querySelectorAll('[data-field]').forEach(i => i.addEventListener('change', () => {
+    // No TV Here / Held Up: ask to confirm and require a comment before the tick is kept.
+    if (i.checked && TICK_CONFIRM[i.dataset.label]) {
+      i.checked = false;
+      const tvTag = tvCountOf(c) > 1 ? 'TV ' + i.dataset.tv + ' — ' : '';
+      confirmTick(i.dataset.label, 'Cabin ' + c.cabin + (tvTag ? ' · TV ' + i.dataset.tv : ''), comment => {
+        i.checked = true;
+        appendRemark(a.querySelector('[data-comments]'), tvTag + fieldLabel(i.dataset.label) + ': ' + comment);
+        cabinTickChanged(i);
+      });
+      return;
+    }
+    cabinTickChanged(i);
+  }));
+  function cabinTickChanged(i) {
+    a.dataset.dirty = 'true'; updateBulkBar();
+    i.parentElement.querySelector('small').textContent = i.checked ? 'YES' : '';
+    // CREW: TV Installed, Powering On and LAN Connected always change together (per TV).
+    if (!isPax(c) && CREW_LINKED.includes(i.dataset.label)) {
+      a.querySelectorAll('[data-tv="' + i.dataset.tv + '"]').forEach(o => {
+        if (o !== i && !o.hasAttribute('data-locked') && CREW_LINKED.includes(o.dataset.label)) {
+          o.checked = i.checked;
+          o.parentElement.querySelector('small').textContent = o.checked ? 'YES' : '';
+        }
+      });
+    }
+    const vals = Object.assign({ cabinType: c.cabinType }, readCardValues(a)), ns = getStatus(vals), p = a.querySelector('.pill');
+    p.textContent = ns; p.className = 'pill ' + pillClass(ns);
+  }
+  a.querySelector('[data-comments]').addEventListener('input', () => { if (a.dataset.dirty !== 'true') { a.dataset.dirty = 'true'; updateBulkBar(); } });
+  a.querySelector('[data-whatcheck]').addEventListener('input', () => { if (a.dataset.dirty !== 'true') { a.dataset.dirty = 'true'; updateBulkBar(); } });
+  const lockBox = a.querySelector('[data-lockrow]');
+  if (lockBox) lockBox.addEventListener('change', ev => { ev.stopPropagation(); setCabinLockFor([{ cabin: c.cabin, cabinType: c.cabinType }], lockBox.checked, true); });
+  const selBox = a.querySelector('[data-select]');
+  if (selBox) {
+    if (selectedCabins.has(keyOfCabin(c))) a.classList.add('selected');
+    selBox.addEventListener('change', ev => { ev.stopPropagation(); setCabinSelected(c.cabinType, c.cabin, selBox.checked); });
+  }
+  a.querySelector('.save').addEventListener('click', () => save(a));
+  a.addEventListener('click', () => { if (editorUnlocked && activeCabin !== c.cabin) { activeCabin = c.cabin; heartbeat(); } });
+  if (!editorUnlocked) {
+    a.querySelectorAll('[data-field],[data-comments],[data-whatcheck],[data-assigned-to],.save').forEach(el => { el.disabled = true; });
+    a.querySelector('.save').textContent = 'Read-only — sign in to edit';
+  }
+  return a;
+}
+function uploadWhatMarkup(c) {
+  const w = uploadedWhatFor(c);
+  if (!w) return '';
+  const saved = String(c.whatToCheck || '').trim() === w;
+  return '<div class="upload-remark' + (saved ? ' saved' : '') + '" style="border-color:#38bdf8;color:#bae6fd"><b style="color:#7dd3fc">' +
+    (saved ? '✓ What to Check from Excel (saved)' : 'What to Check from Excel (not saved yet — Technician Cabin Assignments › Save)') + '</b>' + esc(w) + '</div>';
+}
+function uploadRemarkMarkup(c) {
+  const r = uploadedRemarkFor(c);
+  if (!r) return '';
+  const saved = String(c.comments || '').indexOf(r) !== -1;
+  return '<div class="upload-remark' + (saved ? ' saved' : '') + '"><b>' + (saved ? '✓ Uploaded remark (saved)' : 'Remark from uploaded list (not saved yet)') + '</b>' + esc(r) + '</div>';
+}
+function readCardValues(a) { const v = {}; a.querySelectorAll('[data-field]').forEach(i => v[i.dataset.field] = i.checked); return v; }
+function buildSavePayload(a) {
+  const data = readCardValues(a);
+  const local = findLocalCabin(a.dataset.type, a.dataset.cabin) || {};
+  data.cabin = a.dataset.cabin;
+  data.cabinType = a.dataset.type || local.cabinType || '';
+  data.comments = a.querySelector('[data-comments]').value || '';
+  data.baseComments = a.dataset.baseComments || '';
+  const wEl = a.querySelector('[data-whatcheck]');
+  if (wEl) { data.whatToCheck = wEl.value || ''; data.baseWhatToCheck = a.dataset.baseWhat || ''; }
+  const sel = a.querySelector('[data-assigned-to]');
+  data.assignedTo = sel ? sel.value : (local.assignedTo || '');
+  data.authToken = authToken;
+  data.sessionId = sessionId;
+  data.baseCheckedAt = a.dataset.baseCheckedAt || '';
+  try { data.baseChecks = JSON.parse(a.dataset.baseChecks || '{}'); } catch (_) { data.baseChecks = {}; }
+  data.requestId = 'paxcrew-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
+  return data;
+}
+// ---------------------------------------------------------------- saving
+function save(a, done) {
+  if (!editorUnlocked || !authToken) { msg('Please sign in with an authorized account first.', 'error'); return; }
+  const data = buildSavePayload(a), b = a.querySelector('.save');
+  const finish = ok => { b.disabled = false; b.textContent = 'Save Cabin'; if (done) done(ok); };
+  if (!navigator.onLine) {
+    queuePending(Number(a.dataset.row), data, a.dataset.cabin);
+    finish(false);
+    msg('Cabin ' + a.dataset.cabin + ' is queued on this device and will sync when online.', 'success');
+    return;
+  }
+  b.disabled = true; b.textContent = 'Saving…';
+  google.script.run.withSuccessHandler(r => {
+    if (r && r.success) {
+      applySaved(a, data, r);
+      msg('Cabin ' + (r.cabin || a.dataset.cabin) + ' saved' + (r.merged ? ' (latest non-conflicting changes merged).' : '.'), 'success');
+      finish(true);
+      if (liveChangeWaiting) checkLiveVersion();
+      return;
+    }
+    if (r && r.locked) { msg('Cabin ' + a.dataset.cabin + ': ' + r.message, 'error'); a.dataset.dirty = 'false'; finish(false); load(true); return; }
+    const reason = r && r.unauthorized ? 'unauthorized' : r && r.conflict ? 'conflict' : r && r.forbidden ? 'forbidden' : r && r.notFound ? 'notfound' : 'error';
+    queuePending(Number(a.dataset.row), data, a.dataset.cabin, { blocked: reason !== 'error', reason, lastError: (r && r.message) || 'Save not confirmed.' });
+    msg('Cabin ' + a.dataset.cabin + ': ' + ((r && r.message) || 'Save not confirmed.') + ' Your change is kept in the pending queue.', 'error');
+    if (reason === 'unauthorized') logout(true);
+    finish(false);
+    if (reason === 'notfound') { a.dataset.dirty = 'false'; load(true); }
+  }).withFailureHandler(e => {
+    queuePending(Number(a.dataset.row), data, a.dataset.cabin, { reason: 'error', lastError: errText(e) });
+    msg('Server did not confirm cabin ' + a.dataset.cabin + '. The change is kept for retry. ' + errText(e), 'error');
+    finish(false);
+  }).saveTV(Number(a.dataset.row), data);
+}
+function applySaved(a, data, r) {
+  const stamp = r.checkedAt || new Date().toLocaleString();
+  const type = data.cabinType || a.dataset.type, cabin = data.cabin || a.dataset.cabin;
+  if (r.rowNumber) a.dataset.row = r.rowNumber;
+  a.dataset.baseCheckedAt = stamp;
+  a.dataset.baseComments = String(r.comments != null ? r.comments : data.comments || '');
+  a.dataset.baseWhat = String(r.whatToCheck != null ? r.whatToCheck : data.whatToCheck || '');
+  const checks = {};
+  a.querySelectorAll('[data-field]').forEach(i => checks[i.dataset.field] = i.checked ? 'Yes' : 'No');
+  a.dataset.baseChecks = JSON.stringify(checks);
+  a.dataset.dirty = 'false';
+  if (!batchSaveRunning) setTimeout(updateBulkBar, 0);
+  const p = a.querySelector('.pill'); p.textContent = r.status; p.className = 'pill ' + pillClass(r.status);
+  a.querySelector('.last-by').textContent = r.checkBy || chosenTech();
+  a.querySelector('.last-at').textContent = stamp;
+  const local = findLocalCabin(type, cabin);
+  if (local) {
+    Object.keys(data).forEach(k => { if (isChecklistField(k)) local[k] = !!data[k]; });
+    if (r.rowNumber) local.rowNumber = r.rowNumber;
+    local.comments = a.dataset.baseComments;
+    local.whatToCheck = a.dataset.baseWhat;
+    local.checkBy = r.checkBy; local.assignedTo = r.assignedTo || ''; local.status = r.status; local.checkedAt = stamp;
+    a.className = 'cabin ' + techClass(local.assignedTo);
+  }
+  lastSignature = JSON.stringify(cabins);
+  if (r.dataVersion) dataVersion = String(r.dataVersion);
+  removePendingFor(type, cabin);
+  if (isAdmin()) renderTechnicians();
+}
+// ---------------------------------------------------------------- pending (offline) queue
+function readPending() { try { const v = JSON.parse(localStorage.getItem(PENDING_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch (_) { return []; } }
+function writePending() { try { localStorage.setItem(PENDING_KEY, JSON.stringify(pendingQueue)); } catch (_) { msg('Pending saves could not be stored in this browser. Stay on this page until online.', 'error'); } updatePendingPanel(); }
+function pendingKeyOf(x) {
+  if (x && x.kind === 'venue') return 'VENUE:' + String(x.data && x.data.id || '').toUpperCase();
+  return x && x.data && x.data.cabin ? cabinKeyOf(x.data.cabinType, x.data.cabin) : 'ROW:' + (x && x.rowNumber);
+}
+function queuePending(rowNumber, data, cabin, opts) {
+  opts = opts || {};
+  const item = { kind: opts.kind || 'cabin', requestId: data.requestId, rowNumber, data, cabin: String(cabin || ''), queuedAt: new Date().toISOString(), blocked: !!opts.blocked, reason: opts.reason || '', lastError: opts.lastError || '' };
+  const key = pendingKeyOf(item);
+  pendingQueue = pendingQueue.filter(x => pendingKeyOf(x) !== key); // newest edit for a cabin / location wins
+  pendingQueue.push(item);
+  writePending();
+}
+function removePendingFor(type, cabin) {
+  const k = cabinKeyOf(type, cabin);
+  pendingQueue = pendingQueue.filter(x => pendingKeyOf(x) !== k && !(!(x.data && x.data.cabin) && x.cabin === String(cabin)));
+  writePending();
+}
+
+function updatePendingPanel() {
+  const online = navigator.onLine, blocked = pendingQueue.filter(x => x.blocked).length;
+  $('offlinePanel').classList.toggle('online', online);
+  $('offlineLabel').textContent = online ? 'ONLINE · ' + (retryInFlight ? 'SYNCING PENDING SAVES' : pendingQueue.length ? 'PENDING SAVES WAITING' : 'SAVES SYNCHRONIZED') : 'OFFLINE · SAVES QUEUED ON THIS DEVICE';
+  $('pendingCount').textContent = pendingQueue.length + ' pending';
+  $('offlineDetail').textContent = pendingQueue.length
+    ? (blocked ? blocked + ' save(s) need review (conflict, permission or sign-in). ' : '') + 'Pending changes stay on this browser until confirmed.'
+    : 'No pending saves. Confirmed changes are stored in the shared tracker.';
+  $('retryPending').disabled = !online || !editorUnlocked || !pendingQueue.length || retryInFlight;
+}
+function retryPending(manual) {
+  if (!navigator.onLine || !editorUnlocked || retryInFlight || !pendingQueue.length) return;
+  const item = pendingQueue.find(x => !x.blocked) || (manual ? pendingQueue[0] : null);
+  if (!item) return;
+  const isVenue = item.kind === 'venue', label = (isVenue ? '' : 'cabin ') + item.cabin;
+  retryInFlight = true; updatePendingPanel();
+  item.data.authToken = authToken; item.data.sessionId = sessionId;
+  const run = google.script.run.withSuccessHandler(r => {
+    retryInFlight = false;
+    if (r && r.success) {
+      if (isVenue) {
+        const a = findVenueCard(r.id || item.data.id);
+        applyVenueSaved(a, item.data, r);
+      } else {
+        const a = findCard(r.cabinType || item.data.cabinType, r.cabin || item.cabin);
+        if (a) applySaved(a, item.data, r);
+      }
+      pendingQueue = pendingQueue.filter(x => x !== item); writePending();
+      msg('Pending save confirmed for ' + (isVenue ? item.cabin : 'cabin ' + (r.cabin || item.cabin)) + '.', 'success');
+    } else if (r && r.locked) {
+      // Julius L locked ticked items while this save was waiting: drop it and reload the latest values.
+      pendingQueue = pendingQueue.filter(x => x !== item); writePending();
+      msg('Pending save for ' + label + ' was not applied: ' + r.message, 'error');
+      load(true);
+    } else {
+      item.blocked = true;
+      item.reason = r && r.unauthorized ? 'unauthorized' : r && r.conflict ? 'conflict' : r && r.forbidden ? 'forbidden' : r && r.notFound ? 'notfound' : 'error';
+      item.lastError = (r && r.message) || 'Save not confirmed';
+      writePending();
+      msg('Pending save for ' + label + ' needs review: ' + item.lastError, 'error');
+      if (item.reason === 'unauthorized') logout(true);
+    }
+    updatePendingPanel();
+    if (pendingQueue.some(x => !x.blocked)) setTimeout(() => retryPending(false), 400);
+  }).withFailureHandler(e => {
+    retryInFlight = false; item.lastError = errText(e); writePending(); updatePendingPanel();
+  });
+  if (isVenue) run.saveVenue(item.data); else run.saveTV(Number(item.rowNumber), item.data);
+}
+// ---------------------------------------------------------------- assignments (Julius L)
+function updateAdminVisibility() {
+  const allowed = isAdmin();
+  $('technicianAssignmentPanel').hidden = !allowed;
+  // Export All to Excel: Julius L only. Hidden for Julius T, Alana, Cesar, Roland and signed-out users.
+  $('exportPanel').hidden = !allowed;
+  updateLockUi();
+  // Upload Excel cabin list + Batch Tick Checklist: Julius L only.
+  ['excelUploadWrap','clearExcelFilter','excelUploadStatus'].forEach(id => { $(id).hidden = !allowed; });
+  if (!allowed && (uploadedCabinKeys || uploadedRemarks.size)) {
+    uploadedCabinKeys = null; uploadedRemarks = new Map(); uploadedAssignments = new Map(); uploadedWhat = new Map(); uploadedBadTechs = 0;
+    $('excelCabinFile').value = '';
+  }
+  updateBatchPanel(); updateBulkBar(); updateUploadedRemarksButton();
+  $('exportExcel').textContent = 'Export All to Excel (.xlsx)';
+  $('exportNote').textContent = 'Export includes all cabins, status sheets and Remarks.';
+  if (allowed) { populateAssignmentDecks(); renderAssignmentList(); renderTechnicians(); }
+}
+function populateAssignmentDecks() {
+  const el = $('assignmentDeck'), old = el.value;
+  const ds = [...new Set(cabins.map(c => String(c.deck || '')).filter(Boolean))].sort((a, b) => Number(a) - Number(b));
+  el.innerHTML = '<option value="">All decks</option>' + ds.map(d => '<option value="' + esc(d) + '">Deck ' + esc(d) + '</option>').join('');
+  if (ds.includes(old)) el.value = old;
+}
+function visibleAssignmentCabins() {
+  const q = $('assignmentSearch').value.trim().toLowerCase(), t = $('assignmentType').value, d = $('assignmentDeck').value;
+  const excelOnly = excelAssignSelection && uploadedCabinKeys && $('assignExcelOnly').checked;
+  return cabins.filter(c => (t === 'ALL' || c.cabinType === t) && String(c.cabin).toLowerCase().includes(q) && (!d || String(c.deck) === d) &&
+    (!excelOnly || uploadedMatch(c)));
+}
+function renderAssignmentList() {
+  const list = visibleAssignmentCabins();
+  $('assignmentList').innerHTML = list.length ? list.slice(0, ASSIGN_LIMIT).map(c => {
+    const k = keyOfCabin(c), t = String(c.assignedTo || '').trim();
+    return '<label class="assignOpt ' + techClass(t) + '"><input type="checkbox" data-assign-row="' + esc(k) + '"' + (selectedAssignRows.has(k) ? ' checked' : '') + '>' +
+      '<span>' + esc(c.cabinType) + ' ' + esc(c.cabin) + '</span><small>' + esc(t || 'Unassigned') + '</small></label>';
+  }).join('') + (list.length > ASSIGN_LIMIT ? '<div class="muted" style="grid-column:1/-1">Showing the first ' + ASSIGN_LIMIT + ' of ' + list.length.toLocaleString() + ' cabins. Search or pick a deck to narrow the list — "Select visible cabins" still selects all ' + list.length.toLocaleString() + '.</div>' : '') : '<div class="empty">No cabins match these filters.</div>';
+  $('assignmentList').querySelectorAll('[data-assign-row]').forEach(ch => ch.addEventListener('change', () => {
+    ch.checked ? selectedAssignRows.add(ch.dataset.assignRow) : selectedAssignRows.delete(ch.dataset.assignRow);
+    updateAssignCount();
+  }));
+  updateAssignCount();
+}
+function updateAssignCount() { $('assignmentSelectionCount').textContent = selectedAssignRows.size + ' cabin' + (selectedAssignRows.size === 1 ? '' : 's') + ' selected' + (excelAssignSelection ? ' (from Excel)' : ''); }
+/** Ticks every cabin from the uploaded Excel in the Technician Cabin Assignments list. */
+function selectUploadedForAssignment() {
+  if (!uploadedCabinKeys) return 0;
+  const hits = cabins.filter(uploadedMatch);
+  selectedAssignRows.clear();
+  hits.forEach(c => selectedAssignRows.add(keyOfCabin(c)));
+  excelAssignSelection = hits.length > 0;
+  $('assignExcelOnlyWrap').hidden = !excelAssignSelection;
+  // If every technician named in the file is the same person, pre-pick them.
+  const named = new Set(hits.map(uploadedAssignmentFor).filter(t => t !== undefined));
+  if (named.size === 1) { const t = [...named][0]; $('bulkAssignTech').value = t || '__UNASSIGNED__'; }
+  if (isAdmin()) renderAssignmentList();
+  return hits.length;
+}
+function saveAssignments() {
+  if (!isAdmin()) { msg('Only Julius L can manage cabin assignments.', 'error'); return; }
+  const choice = $('bulkAssignTech').value;
+  if (!choice) { $('assignmentMessage').textContent = 'Choose a technician first.'; return; }
+  const tech = choice === '__UNASSIGNED__' ? '' : choice;
+  const items = [...selectedAssignRows].map(k => cabins.find(c => keyOfCabin(c) === k)).filter(Boolean)
+    .map(c => ({ rowNumber: c.rowNumber, cabin: c.cabin, cabinType: c.cabinType }));
+  if (!items.length) { $('assignmentMessage').textContent = 'Select one or more cabins first.'; return; }
+  if (!tech && !confirm('Remove assignment from ' + items.length + ' cabin(s)?')) return;
+  if (excelAssignSelection && uploadedWhat.size) {
+    // Selection came from an uploaded Excel: save the technician AND the What to Check text from the file in one go.
+    const excelItems = items.map(it => {
+      const c = findLocalCabin(it.cabinType, it.cabin) || it, w = uploadedWhatFor(c), x = Object.assign({ technician: tech }, it);
+      if (w !== undefined) x.whatToCheck = w;
+      return x;
+    });
+    const b2 = $('saveCabinAssignments'); b2.disabled = true; b2.textContent = 'Saving assignments + What to Check…';
+    google.script.run.withSuccessHandler(r => {
+      b2.disabled = false; b2.textContent = 'Save cabin assignments';
+      if (!r || !r.success) { $('assignmentMessage').textContent = (r && r.message) || 'Could not save assignments.'; if (r && r.unauthorized) logout(true); return; }
+      const changed = new Map((r.assignments || []).map(x => [cabinKeyOf(x.cabinType, x.cabin), x]));
+      cabins.forEach(c => { const x = changed.get(keyOfCabin(c)); if (x) { c.assignedTo = x.assignedTo || ''; c.whatToCheck = x.whatToCheck || ''; } });
+      if (r.dataVersion) dataVersion = String(r.dataVersion);
+      lastSignature = JSON.stringify(cabins);
+      selectedAssignRows.clear(); excelAssignSelection = false; $('assignExcelOnlyWrap').hidden = true;
+      renderAssignmentList(); renderTechnicians(); render(); loadHistory();
+      $('assignmentMessage').textContent = r.message + ' (technician: ' + (tech || 'Unassigned') + ', What to Check from the Excel file)';
+    }).withFailureHandler(e => { b2.disabled = false; b2.textContent = 'Save cabin assignments'; $('assignmentMessage').textContent = 'Save failed: ' + errText(e); })
+      .importUploadedAssignments(authToken, sessionId, excelItems);
+    return;
+  }
+  const b = $('saveCabinAssignments'); b.disabled = true; b.textContent = 'Saving assignments…';
+  google.script.run.withSuccessHandler(r => {
+    b.disabled = false; b.textContent = 'Save cabin assignments';
+    if (!r || !r.success) { $('assignmentMessage').textContent = (r && r.message) || 'Could not save assignments.'; if (r && r.unauthorized) logout(true); return; }
+    const changed = new Map((r.assignments || []).map(x => [cabinKeyOf(x.cabinType, x.cabin), x.assignedTo || '']));
+    cabins.forEach(c => { const k = keyOfCabin(c); if (changed.has(k)) c.assignedTo = changed.get(k); });
+    if (r.dataVersion) dataVersion = String(r.dataVersion);
+    lastSignature = JSON.stringify(cabins);
+    selectedAssignRows.clear(); excelAssignSelection = false; $('assignExcelOnlyWrap').hidden = true;
+    renderAssignmentList(); renderTechnicians(); render();
+    $('assignmentMessage').textContent = 'Saved ' + Number(r.updated || 0) + ' assignment(s) for ' + (tech || 'Unassigned') + '.' +
+      (r.missing ? ' ' + r.missing + ' selected cabin(s) were no longer in the sheet.' : '');
+  }).withFailureHandler(e => { b.disabled = false; b.textContent = 'Save cabin assignments'; $('assignmentMessage').textContent = 'Save failed: ' + errText(e); })
+    .assignCabinsToTechnician(authToken, sessionId, items, tech);
+}
+function renderTechnicians() {
+  $('technicianRows').innerHTML = TECHS.concat(['Unassigned']).map(name => {
+    const rows = cabins.filter(c => (c.assignedTo || 'Unassigned') === name);
+    const cnt = st => rows.filter(c => getStatus(c) === st).length;
+    const btn = (label, st) => '<button type="button" data-tech="' + esc(name) + '" data-st="' + (st || '') + '">' + label + '</button>';
+    return '<tr><td><strong>' + esc(name) + '</strong></td><td>' + btn(rows.length) + '</td><td>' + btn(cnt('Fully Configured'), 'Fully Configured') +
+      '</td><td>' + btn(cnt('In Progress'), 'In Progress') + '</td><td>' + btn(cnt('Not Started'), 'Not Started') + '</td></tr>';
+  }).join('');
+  $('technicianRows').querySelectorAll('[data-tech]').forEach(b => b.addEventListener('click', () => {
+    $('assignedTech').value = b.dataset.tech === 'Unassigned' ? '__UNASSIGNED__' : b.dataset.tech;
+    statusFilter = b.dataset.st || 'all'; $('status').value = statusFilter; checkFilter = ''; $('search').value = '';
+    render(); $('listTitle').scrollIntoView({ block: 'start' });
+  }));
+}
+// ---------------------------------------------------------------- sign-in / session
+function signIn() {
+  if (typeof google === 'undefined' || !google.script || !google.script.run) { $('identityNote').textContent = 'Open the deployed web-app URL (ending in /exec) to sign in.'; return; }
+  const name = chosenTech(), pw = $('editCode').value;
+  if (!name) { $('identityNote').textContent = 'Select your account first.'; return; }
+  if (!pw) { $('identityNote').textContent = 'Enter your individual password.'; return; }
+  $('unlockBtn').disabled = true; $('identityNote').textContent = 'Verifying credentials…';
+  google.script.run.withSuccessHandler(r => {
+    $('unlockBtn').disabled = false;
+    if (!r || !r.success) { $('identityNote').textContent = (r && r.message) || 'Sign-in failed.'; return; }
+    authToken = r.token; editorUnlocked = true;
+    try { sessionStorage.setItem(AUTH_KEY, authToken); } catch (_) {}
+    enterEditing(r.username);
+    google.script.run.withFailureHandler(() => {}).registerTechnicianLogin(authToken);
+    google.script.run.withFailureHandler(() => {}).notifyTechnicianLogin(authToken);
+  }).withFailureHandler(e => { $('unlockBtn').disabled = false; $('identityNote').textContent = 'Sign-in failed: ' + errText(e); })
+    .loginTechnician(name, pw, sessionId);
+}
+function enterEditing(username) {
+  $('activeTech').value = username;
+  $('editCode').value = '';
+  $('unlockBtn').hidden = true; $('logoutBtn').hidden = false;
+  $('modeBadge').textContent = 'EDITING ENABLED · ' + username; $('modeBadge').className = 'modeBadge editor';
+  $('identityNote').textContent = 'Signed in as ' + username + '. Your saves are recorded under your account.';
+  updateAdminVisibility(); updatePendingPanel();
+  load(true); refreshActiveUsers(); loadHistory();
+  setTimeout(() => retryPending(false), 1000);
+}
+function lockEditing(note) {
+  editorUnlocked = false; authToken = '';
+  try { sessionStorage.removeItem(AUTH_KEY); } catch (_) {}
+  $('unlockBtn').hidden = false; $('logoutBtn').hidden = true;
+  $('modeBadge').textContent = 'READ-ONLY VIEW'; $('modeBadge').className = 'modeBadge';
+  $('identityNote').textContent = note || 'Sign in to view and update your assigned cabins.';
+  $('activeUsers').textContent = 'Sign in to view active users.';
+  updateAdminVisibility(); updatePendingPanel();
+  load(true);
+}
+function logout(expired) {
+  const token = authToken;
+  if (token) google.script.run.withFailureHandler(() => {}).logoutTechnician(token, sessionId);
+  lockEditing(expired ? 'Your session expired. Please sign in again — pending changes are kept on this device.' : 'You have logged out.');
+  if (!expired) $('activeTech').value = '';
+}
+function restoreSession() {
+  let token = '';
+  try { token = sessionStorage.getItem(AUTH_KEY) || ''; } catch (_) {}
+  if (!token) return;
+  google.script.run.withSuccessHandler(r => {
+    if (r && r.success) { authToken = token; editorUnlocked = true; enterEditing(r.username); heartbeat(); }
+    else lockEditing('Your editing session expired. Please sign in again.');
+  }).withFailureHandler(() => lockEditing('Could not restore your session. Please sign in again.')).verifyTechnicianSession(token);
+}
+function heartbeat() {
+  if (!editorUnlocked || !authToken) return;
+  google.script.run.withSuccessHandler(r => {
+    if (!r || !r.success) lockEditing((r && r.message) || 'Your editing session expired. Please sign in again.');
+  }).withFailureHandler(() => {}).heartbeatUser(sessionId, activeCabin, authToken);
+}
+function refreshActiveUsers() {
+  const host = $('activeUsers');
+  if (!editorUnlocked || !authToken) { host.textContent = 'Sign in to view active users.'; return; }
+  google.script.run.withSuccessHandler(users => {
+    if (!Array.isArray(users)) { host.textContent = 'Unexpected response.'; return; }
+    activeTechs.clear();
+    users.filter(u => u.active).forEach(u => activeTechs.add(String(u.technician || '').trim()));
+    updatePresenceTags();
+    if (!users.length) { host.textContent = 'No active sessions found.'; return; }
+    host.innerHTML = users.map(u => {
+      const own = u.sessionId === sessionId;
+      return '<div class="userRow ' + techClass(u.technician) + '"><div><span class="name">● ' + esc(u.technician) + (u.cabin ? ' · ' + esc(u.cabin) : '') + '</span>' +
+        '<small class="' + (u.active ? 'online' : '') + '">' + (u.active ? 'Online' : 'Inactive') + ' · Last seen ' + esc(u.lastSeen || '—') + '</small></div>' +
+        '<select class="workStatus" data-own="' + (own ? 'yes' : 'no') + '"' + (own ? '' : ' disabled') + '><option' + (u.workStatus === 'Working' ? ' selected' : '') + '>Working</option><option' + (u.workStatus === 'On Break' ? ' selected' : '') + '>On Break</option></select>' +
+        (isAdmin() && u.active && !own ? '<button type="button" class="kickBtn" data-kick="' + esc(u.sessionId) + '" data-name="' + esc(u.technician) + '">Kick out</button>' : '<span></span>') + '</div>';
+    }).join('');
+    host.querySelectorAll('.workStatus[data-own="yes"]').forEach(sel => sel.addEventListener('change', () => {
+      google.script.run.withSuccessHandler(r => { if (!r || !r.success) msg((r && r.message) || 'Could not update work status.', 'error'); refreshActiveUsers(); loadHistory(); })
+        .withFailureHandler(e => msg('Status update failed: ' + errText(e), 'error')).setMyWorkStatus(authToken, sel.value);
+    }));
+    host.querySelectorAll('.kickBtn').forEach(b => b.addEventListener('click', () => {
+      if (!confirm('Kick out ' + b.dataset.name + '? They will need to sign in again.')) return;
+      b.disabled = true;
+      google.script.run.withSuccessHandler(r => { msg((r && r.message) || 'Done.', r && r.success ? 'success' : 'error'); refreshActiveUsers(); loadHistory(); })
+        .withFailureHandler(e => { b.disabled = false; msg('Kick-out failed: ' + errText(e), 'error'); }).kickUser(authToken, b.dataset.kick);
+    }));
+  }).withFailureHandler(e => { host.textContent = 'Unable to load active users: ' + errText(e); }).getActiveUsers(authToken);
+}
+// ---------------------------------------------------------------- Excel upload filter
+function excelStatus(t, isErr) { $('excelUploadStatus').textContent = t; $('excelUploadStatus').style.color = isErr ? '#ffb4c0' : ''; }
+function loadXlsx() {
+  return new Promise((resolve, reject) => {
+    if (window.XLSX) return resolve();
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.onload = resolve; s.onerror = () => reject(new Error('Could not load the Excel reader. Check the connection or upload a CSV.'));
+    document.head.appendChild(s);
+  });
+}
+function parseCabinRows(rows) {
+  const norm = x => String(x == null ? '' : x).trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  const first = rows[0] || [];
+  let ci = first.findIndex(v => ['cabin','cabinno','cabinnumber','room','roomno','stateroom'].includes(norm(v)));
+  const ti = first.findIndex(v => ['cabintype','type','category'].includes(norm(v)));
+  let ri = first.findIndex(v => ['remarks','remark','comments','comment','notes','note','issue','issues','description'].includes(norm(v)));
+  const ai = first.findIndex(v => ['assignedto','assigned','assignee','technician','tech','assignedtechnician'].includes(norm(v)));
+  const wi = first.findIndex(v => ['whattocheck','tocheck','checkitems','whattodo','task','tasks','scope','checkfor'].includes(norm(v)));
+  const hasHeader = ci >= 0;
+  if (!hasHeader) { ci = 0; if (ri < 0) ri = 1; }   // no header row: cabin in column A, remark in column B
+  const techOf = v => {
+    const n = String(v == null ? '' : v).trim().toLowerCase().replace(/\s+/g, ' ');
+    if (!n) return undefined;                                   // blank = leave assignment as it is
+    if (['unassigned','none','-','n/a'].includes(n)) return '';  // explicit unassign
+    const t = TECHS.find(x => x.toLowerCase() === n);
+    return t === undefined ? null : t;                          // null = unknown name
+  };
+  const keys = new Set(), remarks = new Map(), assignments = new Map(), whats = new Map(); let count = 0, remarkCount = 0, assignCount = 0, badTech = 0, whatCount = 0;
+  for (let i = hasHeader ? 1 : 0; i < rows.length; i++) {
+    const r = rows[i] || [], cabin = normCabin(r[ci]);
+    if (!cabin) continue;
+    let type = ti >= 0 ? String(r[ti] || '').trim().toUpperCase() : '';
+    if (type === 'PASSENGER' || type === 'GUEST') type = 'PAX';
+    const remark = ri >= 0 ? String(r[ri] == null ? '' : r[ri]).trim() : '';
+    if (wi >= 0) {
+      const what = String(r[wi] == null ? '' : r[wi]).trim();
+      whats.set(cabin, what);
+      if (type === 'PAX' || type === 'CREW') whats.set(type + ':' + cabin, what);
+      if (what) whatCount++;
+    }
+    if (ai >= 0) {
+      const t = techOf(r[ai]);
+      if (t === null) badTech++;
+      else if (t !== undefined) {
+        assignments.set(cabin, t);
+        if (type === 'PAX' || type === 'CREW') assignments.set(type + ':' + cabin, t);
+        assignCount++;
+      }
+    }
+    keys.add(cabin);
+    if (type === 'PAX' || type === 'CREW') keys.add(type + ':' + cabin);
+    if (remark) {
+      remarks.set(cabin, remark);
+      if (type === 'PAX' || type === 'CREW') remarks.set(type + ':' + cabin, remark);
+      remarkCount++;
+    }
+    count++;
+  }
+  return { keys, count, remarks, remarkCount, assignments, assignCount, badTech, whats, whatCount };
+}
+/** CSV reader that keeps commas and line breaks inside "quoted" cells (common in remarks). */
+function parseCsv(text) {
+  const rows = []; let row = [], cell = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) {
+      if (ch === '"' && text[i + 1] === '"') { cell += '"'; i++; }
+      else if (ch === '"') q = false;
+      else cell += ch;
+    } else if (ch === '"') q = true;
+    else if (ch === ',') { row.push(cell); cell = ''; }
+    else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && text[i + 1] === '\n') i++;
+      row.push(cell); cell = '';
+      if (row.some(v => String(v).trim())) rows.push(row);
+      row = [];
+    } else cell += ch;
+  }
+  row.push(cell);
+  if (row.some(v => String(v).trim())) rows.push(row);
+  return rows;
+}
+function saveUploadedRemarks() {
+  if (!isAdmin() || !authToken) { msg('Only Julius L can save remarks from an uploaded list.', 'error'); return; }
+  if (document.querySelector('.cabin[data-dirty="true"]')) { msg('Save or finish the cabin you are editing first, then save the uploaded remarks.', 'error'); return; }
+  const items = pendingUploadedRemarks();
+  if (!items.length) { msg('All uploaded remarks are already saved on these cabins.', 'success'); return; }
+  if (!confirm('Add the uploaded remarks to ' + items.length + ' cabin(s)?\nExisting remarks are kept; the uploaded text is added on a new line.')) return;
+  const b = $('saveUploadedRemarks'); b.disabled = true; b.textContent = 'Saving remarks…';
+  google.script.run.withSuccessHandler(r => {
+    b.disabled = false;
+    if (!r || !r.success) { msg((r && r.message) || 'Could not save the uploaded remarks.', 'error'); if (r && r.unauthorized) logout(true); updateUploadedRemarksButton(); return; }
+    (r.results || []).forEach(x => {
+      const local = findLocalCabin(x.cabinType, x.cabin);
+      if (local) { local.comments = x.comments; local.checkBy = x.checkBy; local.checkedAt = x.checkedAt; }
+    });
+    if (r.dataVersion) dataVersion = String(r.dataVersion);
+    lastSignature = JSON.stringify(cabins);
+    render(); loadHistory();
+    msg(r.message, 'success');
+  }).withFailureHandler(e => { b.disabled = false; updateUploadedRemarksButton(); msg('Saving uploaded remarks failed: ' + errText(e), 'error'); })
+    .importUploadedRemarks(authToken, sessionId, items);
+}
+async function handleUpload(file) {
+  if (!file) return;
+  if (!isAdmin()) { msg('Only Julius L can upload an Excel cabin list.', 'error'); return; }
+  excelStatus('Reading ' + file.name + '…');
+  try {
+    let rows;
+    if (/\.csv$/i.test(file.name)) {
+      rows = parseCsv(await file.text());
+    } else {
+      await loadXlsx();
+      const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+      rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '', raw: false });
+    }
+    const p = parseCabinRows(rows);
+    if (!p.count) { excelStatus('No cabin numbers found. Use a "Cabin" column or put cabins in column A.', true); return; }
+    uploadedCabinKeys = p.keys; uploadedRemarks = p.remarks; uploadedAssignments = p.assignments; uploadedWhat = p.whats; uploadedBadTechs = p.badTech;
+    if (!selectedCabins.size) $('batchTarget').value = 'shown'; // batch tick defaults to the uploaded cabins
+    render();
+    const waiting = pendingUploadedRemarks().length, assignWaiting = pendingUploadedAssignments().length;
+    const summary = 'Loaded ' + p.count + ' cabins from ' + file.name + ' (' + p.assignCount + ' with a technician, ' + p.whatCount + ' with What to Check, ' + p.remarkCount + ' with remarks). ' + filtered.length + ' match.' +
+      (waiting ? ' ' + waiting + ' remark(s) are shown on the cabins — press "Save Uploaded Remarks" to add them to the tracker.' : '') +
+      (assignWaiting ? ' ' + assignWaiting + ' cabin(s) have new assignments / What to Check' + (isAdmin() ? ' — press "Save Assignments from Excel".' : ' — Julius L must sign in to save them.') : '') +
+      (p.badTech ? ' ' + p.badTech + ' row(s) have a technician name that is not recognised (use: ' + TECHS.join(', ') + ').' : '') +
+      (!waiting && !assignWaiting ? ' Tracker data was not changed.' : '');
+    const picked = selectUploadedForAssignment();
+    const pickNote = picked ? ' ' + picked + ' cabin(s) are now ticked in Technician Cabin Assignments — choose a technician and press "Save cabin assignments"' +
+      (assignWaiting ? ', or press "Save Assignments from Excel" to use the technicians in the file.' : '.') : '';
+    excelStatus(summary + (isAdmin() ? pickNote : ''));
+    if ($('assignExcelStatus')) $('assignExcelStatus').textContent = summary + pickNote;
+  } catch (e) { excelStatus('Upload failed: ' + errText(e), true); }
+}
+// ---------------------------------------------------------------- Assignment Excel download
+function downloadAssignmentExcel() {
+  if (!isAdmin() || !authToken) { msg('Sign in as Julius L to download the assignment Excel.', 'error'); return; }
+  const b = $('downloadAssignExcel'), label = b.textContent;
+  b.disabled = true; b.textContent = 'Preparing Excel…';
+  google.script.run.withSuccessHandler(r => {
+    b.disabled = false; b.textContent = label;
+    if (!r || !r.success) { $('assignExcelStatus').textContent = 'Could not build the assignment Excel.'; return; }
+    const bin = atob(r.base64 || ''), bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const url = URL.createObjectURL(new Blob([bytes], { type: r.mimeType }));
+    const a = document.createElement('a'); a.href = url; a.download = r.filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    $('assignExcelStatus').textContent = 'Downloaded ' + r.filename + ' (' + r.recordCount + ' cabins). Fill in Assigned To and What to Check, then upload it here.';
+  }).withFailureHandler(e => { b.disabled = false; b.textContent = label; $('assignExcelStatus').textContent = 'Download failed: ' + errText(e); })
+    .exportAssignmentTemplate(authToken);
+}
+// ---------------------------------------------------------------- Excel export
+function exportExcel() {
+  if (!isAdmin() || !authToken) { msg('Sign in as Julius L to export the complete tracker.', 'error'); return; }
+  const b = $('exportExcel'), label = b.textContent;
+  b.disabled = true; b.textContent = 'Preparing Excel…';
+  google.script.run.withSuccessHandler(r => {
+    b.disabled = false; b.textContent = label;
+    if (!r || !r.success) { msg('Excel export failed.', 'error'); return; }
+    const bin = atob(r.base64 || ''), bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const url = URL.createObjectURL(new Blob([bytes], { type: r.mimeType }));
+    const a = document.createElement('a'); a.href = url; a.download = r.filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    msg('Excel export ready: ' + r.recordCount + ' cabins across ' + r.sheets.length + ' worksheets.', 'success');
+  }).withFailureHandler(e => { b.disabled = false; b.textContent = label; msg('Excel export failed: ' + errText(e), 'error'); }).exportTrackerExcel(authToken);
+}
+
+// ---------------------------------------------------------------- full-screen cabin (mobile)
+let focusCard = null, focusHome = null, pendingRender = false, focusKind = 'cabin'; // 'cabin' or 'venue'
+function isMobileView() { return window.matchMedia('(max-width: 900px), (pointer: coarse)').matches; }
+function gridCards() { return [...document.querySelectorAll(focusKind === 'venue' ? '#venueList .vcard' : '#grid .cabin')]; }
+function focusNeighbour(dir) {
+  if (!focusHome || !focusHome.parentNode) return null;
+  const cards = gridCards();
+  if (dir > 0) {
+    const after = () => gridCards().find(c => focusHome.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_FOLLOWING) || null;
+    let n = after();
+    if (!n && focusKind === 'cabin' && renderedCount < filtered.length) { renderMore(); n = after(); }
+    return n;
+  }
+  const before = cards.filter(c => focusHome.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_PRECEDING);
+  return before[before.length - 1] || null;
+}
+function updateFocusBar() {
+  if (!focusCard) return;
+  const before = gridCards().filter(c => focusHome && focusHome.parentNode && (focusHome.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_PRECEDING)).length;
+  if (focusKind === 'venue') {
+    const v = venues.find(x => venueKey(x) === String(focusCard.dataset.id || '').toUpperCase()) || {};
+    $('focusTitle').textContent = (v.venue || 'Public Area') + (v.location ? ' · ' + v.location : '');
+    $('focusPos').textContent = (before + 1) + ' of ' + (gridCards().length + 1) + ' · Public Area TVs' + (v.deck ? ' · Deck ' + v.deck : '');
+  } else {
+    $('focusTitle').textContent = 'Cabin ' + focusCard.dataset.cabin;
+    $('focusPos').textContent = (before + 1) + ' of ' + filtered.length + ' · ' + ($('listTitle').textContent || 'Cabin Checklist');
+  }
+  $('focusPrev').disabled = !focusNeighbour(-1);
+  $('focusNext').disabled = !focusNeighbour(1);
+}
+function enterBrowserFullscreen() {
+  // Real full screen works on Android Chrome when the browser allows it; iPhone Safari does not
+  // support it for web pages, so the full-screen panel below is used on every device.
+  const el = document.documentElement, fn = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (!fn || document.fullscreenElement || document.webkitFullscreenElement) return;
+  try { const p = fn.call(el, { navigationUI: 'hide' }); if (p && p.catch) p.catch(() => {}); } catch (_) {}
+}
+function exitBrowserFullscreen() {
+  if (!(document.fullscreenElement || document.webkitFullscreenElement)) return;
+  const fn = document.exitFullscreen || document.webkitExitFullscreen;
+  try { const p = fn && fn.call(document); if (p && p.catch) p.catch(() => {}); } catch (_) {}
+}
+function openFocus(a, keepFullscreen) {
+  if (!a) return;
+  if (focusCard) putFocusBack();
+  focusKind = a.classList.contains('vcard') ? 'venue' : 'cabin';
+  focusHome = document.createComment('focus-home');
+  a.parentNode.insertBefore(focusHome, a);
+  $('focusBody').appendChild(a);
+  focusCard = a;
+  $('focusOverlay').classList.add('open');
+  document.documentElement.classList.add('focus-lock');
+  $('focusBody').scrollTop = 0;
+  updateFocusBar();
+  if (!keepFullscreen) {
+    enterBrowserFullscreen();
+    try { google.script.history.push({ cabin: a.dataset.cabin || a.dataset.id }); } catch (_) {}
+  }
+  if (focusKind === 'cabin' && editorUnlocked && activeCabin !== a.dataset.cabin) { activeCabin = a.dataset.cabin; heartbeat(); }
+}
+function putFocusBack() {
+  if (!focusCard) return null;
+  const a = focusCard;
+  if (focusHome && focusHome.parentNode) focusHome.parentNode.replaceChild(a, focusHome);
+  else if (a.parentNode) a.parentNode.removeChild(a);   // list was rebuilt while open
+  focusCard = null; focusHome = null;
+  return a;
+}
+function closeFocus() {
+  if (!focusCard) return;
+  const a = putFocusBack();
+  $('focusOverlay').classList.remove('open');
+  document.documentElement.classList.remove('focus-lock');
+  exitBrowserFullscreen();
+  if (focusKind === 'venue') {
+    if (venuePendingRender && !anyVenueDirty()) renderVenues(true);
+    else if (a && a.isConnected) a.scrollIntoView({ block: 'center' });
+    return;
+  }
+  if (pendingRender && !document.querySelector('.cabin[data-dirty="true"]')) { pendingRender = false; render(); }
+  else if (a && a.isConnected) a.scrollIntoView({ block: 'center' });
+}
+function stepFocus(dir) {
+  const next = focusNeighbour(dir);
+  if (!next) return;
+  if (focusCard.dataset.dirty === 'true') {
+    const name = focusKind === 'venue' ? ($('focusTitle').textContent || 'This location') : 'Cabin ' + focusCard.dataset.cabin;
+    if (confirm(name + ' has unsaved changes. Save it now before moving on?')) { if (focusKind === 'venue') saveVenueCard(focusCard); else save(focusCard); }
+  }
+  openFocus(next, true);
+  next.classList.remove('slide-next', 'slide-prev'); void next.offsetWidth;
+  next.classList.add(dir > 0 ? 'slide-next' : 'slide-prev');
+  setTimeout(() => next.classList.remove('slide-next', 'slide-prev'), 300);
+}
+function initFocusMode() {
+  $('grid').addEventListener('click', ev => {
+    if (!isMobileView() || focusCard) return;
+    const a = ev.target.closest('.cabin');
+    if (!a || ev.target.closest('input,button,select,textarea,label,a,[data-presence]')) return;
+    openFocus(a);
+  });
+  // Public Areas: tap a location card on a phone / tablet to open it full screen.
+  $('venueList').addEventListener('click', ev => {
+    if (!isMobileView() || focusCard) return;
+    const a = ev.target.closest('.vcard');
+    if (!a || ev.target.closest('input,button,select,textarea,label,a')) return;
+    openFocus(a);
+  });
+  $('focusClose').addEventListener('click', closeFocus);
+  $('focusPrev').addEventListener('click', () => stepFocus(-1));
+  $('focusNext').addEventListener('click', () => stepFocus(1));
+  document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && focusCard) closeFocus(); });
+  // Swipe left / right on the top bar to move between cabins.
+  let sx = null;
+  $('focusOverlay').querySelector('.focus-bar').addEventListener('touchstart', e => { sx = e.touches[0].clientX; }, { passive: true });
+  $('focusOverlay').querySelector('.focus-bar').addEventListener('touchend', e => {
+    if (sx == null) return; const dx = e.changedTouches[0].clientX - sx; sx = null;
+    if (Math.abs(dx) > 60) stepFocus(dx < 0 ? 1 : -1);
+  });
+  // Android back button closes the full-screen cabin / location instead of leaving the app.
+  try { google.script.history.setChangeHandler(e => { if (focusCard && !(e && e.state && e.state.cabin)) closeFocus(); }); } catch (_) {}
+}
+
+
+// ---------------------------------------------------------------- swipe Guest / Crew dashboards
+function initBoardSwipe() {
+  const board = $('statusBoard'), tabs = [...document.querySelectorAll('#sbTabs [data-i]')];
+  const setTab = i => tabs.forEach((b, k) => { b.classList.toggle('active', k === i); b.setAttribute('aria-selected', k === i ? 'true' : 'false'); });
+  tabs.forEach(b => b.addEventListener('click', () => {
+    const card = board.querySelectorAll('.sb-card')[Number(b.dataset.i)];
+    if (card) board.scrollTo({ left: card.offsetLeft - board.offsetLeft, behavior: 'smooth' });
+    setTab(Number(b.dataset.i));
+  }));
+  let t = null;
+  board.addEventListener('scroll', () => {
+    clearTimeout(t);
+    t = setTimeout(() => setTab(Math.round(board.scrollLeft / Math.max(1, board.clientWidth))), 60);
+  }, { passive: true });
+}
+// Swipe anywhere on a full-screen cabin to go to the next / previous cabin.
+function initFocusSwipe() {
+  const body = $('focusBody'); let sx = null, sy = null;
+  body.addEventListener('touchstart', e => {
+    if (e.target.closest('textarea,select,input[type=text]')) { sx = null; return; }
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+  }, { passive: true });
+  body.addEventListener('touchend', e => {
+    if (sx == null) return;
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy; sx = null;
+    if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.8) stepFocus(dx < 0 ? 1 : -1);
+  });
+}
+
+
+// ---------------------------------------------------------------- swipe the cabin list: Guest <-> Crew
+const CABIN_TAB_ORDER = ['PAX', 'CREW', 'ALL'];
+function updateCabinTabs() {
+  const t = $('type').value, counts = { PAX: 0, CREW: 0 };
+  cabins.forEach(c => { if (isPax(c)) counts.PAX++; else counts.CREW++; });
+  const set = (id, n) => { const el = $(id); if (el) el.textContent = Number(n).toLocaleString(); };
+  set('tabCountPAX', counts.PAX); set('tabCountCREW', counts.CREW); set('tabCountALL', counts.PAX + counts.CREW);
+  document.querySelectorAll('#cabinTabs [data-type]').forEach(b => {
+    const on = b.dataset.type === t; b.classList.toggle('active', on); b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+}
+function switchCabinType(t, dir) {
+  if (!t || $('type').value === t) return;
+  $('type').value = t; populateDecks();
+  if (checkFilter && checkFilter !== '__TVTODO__' && t !== 'ALL') checkFilter = '';
+  render();
+  const g = $('grid');
+  g.classList.remove('slide-next', 'slide-prev'); void g.offsetWidth;
+  g.classList.add(dir < 0 ? 'slide-prev' : 'slide-next');
+  setTimeout(() => g.classList.remove('slide-next', 'slide-prev'), 320);
+  const top = $('cabinTabs').getBoundingClientRect().top;
+  if (top < 0 || top > window.innerHeight) $('cabinTabs').scrollIntoView({ block: 'start' });
+}
+function initCabinSwipe() {
+  document.querySelectorAll('#cabinTabs [data-type]').forEach(b => b.addEventListener('click', () => {
+    const from = CABIN_TAB_ORDER.indexOf($('type').value), to = CABIN_TAB_ORDER.indexOf(b.dataset.type);
+    switchCabinType(b.dataset.type, to > from ? 1 : -1);
+  }));
+  const g = $('grid'); let sx = null, sy = null, st = 0;
+  g.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1 || e.target.closest('textarea,select,input[type=text]')) { sx = null; return; }
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = Date.now();
+  }, { passive: true });
+  g.addEventListener('touchend', e => {
+    if (sx == null || focusCard) { sx = null; return; }
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy; sx = null;
+    if (Math.abs(dx) < 80 || Math.abs(dx) < Math.abs(dy) * 2 || Date.now() - st > 800) return;
+    // Swipe left = next tab (Guest → Crew → All), swipe right = previous tab.
+    const i = Math.max(0, CABIN_TAB_ORDER.indexOf($('type').value));
+    const next = CABIN_TAB_ORDER[i + (dx < 0 ? 1 : -1)];
+    if (next) switchCabinType(next, dx < 0 ? 1 : -1);
+  });
+}
+
+// ---------------------------------------------------------------- live sheet sync
+let dataVersion = '', liveChangeWaiting = false;
+function cabinKeyOf(type, cabin) { return String(type || '').trim().toUpperCase() + ':' + String(cabin || '').trim().toUpperCase(); }
+function keyOfCabin(c) { return cabinKeyOf(c.cabinType, c.cabin); }
+function findLocalCabin(type, cabin) { const k = cabinKeyOf(type, cabin); return cabins.find(c => keyOfCabin(c) === k) || null; }
+function findCard(type, cabin) { const k = cabinKeyOf(type, cabin); return [...document.querySelectorAll('.cabin')].find(a => cabinKeyOf(a.dataset.type, a.dataset.cabin) === k) || null; }
+function userIsEditing() {
+  if (document.querySelector('.cabin[data-dirty="true"], .vcard[data-dirty="true"]')) return true;
+  const ae = document.activeElement;
+  return !!(ae && ae.closest && ae.closest('.cabin') && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.type !== 'checkbox');
+}
+function checkLiveVersion() {
+  if (document.visibilityState === 'hidden' || typeof google === 'undefined' || !google.script) return;
+  google.script.run.withSuccessHandler(v => {
+    v = String(v || '0');
+    if (!dataVersion) { dataVersion = v; return; }
+    if (v === dataVersion && !liveChangeWaiting) return;
+    dataVersion = v;
+    if (userIsEditing()) { liveChangeWaiting = true; setRefreshStatus('Sheet changed · refreshes as soon as you save this cabin'); return; }
+    liveChangeWaiting = false;
+    load(true); loadHistory();
+  }).withFailureHandler(() => {}).getDataVersion();
+}
+function startLiveSync() { checkLiveVersion(); setInterval(checkLiveVersion, 6000); }
+
+// ---------------------------------------------------------------- PUBLIC AREA TVs (Crew & Pax areas)
+const VENUE_CHECKS = ['Installed','Power Connected','LAN Connected','Powering On','Configured','Tested','Held Up'];
+const VENUE_COLORS = {'Installed':'#ffd60a','Power Connected':'#ff6b1a','LAN Connected':'#ffb703','Powering On':'#00e5ff','Configured':'#b6ff3b','Tested':'#39ff88','Held Up':'#ff3d71'};
+let venues = [], venueServerStats = null, venueSignature = '', venuePendingRender = false;
+let venueFilter = { check: '', status: '' };
+function venueKey(v) { return String(v.id || '').toUpperCase(); }
+function computeVenueStats(list) {
+  const blank = () => { const b = { rows: 0, tvs: 0, fullyConfigured: 0, inProgress: 0, notStarted: 0 }; VENUE_CHECKS.forEach(k => b[k] = 0); return b; };
+  const add = (b, v) => { b.rows++; b.tvs += v.qty; VENUE_CHECKS.forEach(k => { if (v.checks[k]) b[k] += v.qty; });
+    if (v.status === 'Fully Configured') b.fullyConfigured += v.qty; else if (v.status === 'In Progress') b.inProgress += v.qty; else b.notStarted += v.qty; };
+  const s = blank(); s.bySize = {}; s.byDeck = {}; s.bySource = {}; s.byArea = { PAX: blank(), CREW: blank() };
+  list.forEach(v => {
+    add(s, v); add(s.byArea[v.area] || (s.byArea[v.area] = blank()), v);
+    const z = v.size || '?'; add(s.bySize[z] || (s.bySize[z] = blank()), v);
+    const d = v.deck || '?';
+    if (!s.byDeck[d]) { s.byDeck[d] = blank(); s.byDeck[d].venueSet = {}; s.byDeck[d].sources = {}; }
+    add(s.byDeck[d], v); s.byDeck[d].venueSet[v.venue] = 1;
+    if (v.source) s.byDeck[d].sources[v.source] = (s.byDeck[d].sources[v.source] || 0) + v.qty;
+    const src = v.source || '(none)'; add(s.bySource[src] || (s.bySource[src] = blank()), v);
+  });
+  Object.keys(s.byDeck).forEach(d => { s.byDeck[d].venueCount = Object.keys(s.byDeck[d].venueSet).length; });
+  return s;
+}
+function venueStatusOf(checks) {
+  if (checks['Configured']) return 'Fully Configured';
+  return VENUE_CHECKS.some(k => checks[k]) ? 'In Progress' : 'Not Started';
+}
+const deckSort = (a, b) => (a === '?' ? 999 : Number(a)) - (b === '?' ? 999 : Number(b));
+function pct(n, t) { return t ? Math.round(n / t * 1000) / 10 : 0; }
+function renderVenueStats() {
+  const s = venues.length ? computeVenueStats(venues) : venueServerStats;
+  if (!s) { $('venueKpis').innerHTML = '<div class="muted">Public Area TVs not loaded yet.</div>'; return; }
+  const kpi = (label, n, sub, col, attrs) => '<button type="button" class="vk-card" style="--gc:' + col + '" ' + (attrs || '') + '><span>' + label + '</span><strong>' + Number(n).toLocaleString() + '</strong><small>' + sub + '</small></button>';
+  const toGo = s.tvs - s['Installed'];
+  $('venueKpis').innerHTML =
+    kpi('Total TVs', s.tvs, s.rows + ' locations · Pax ' + ((s.byArea.PAX || {}).tvs || 0) + ' · Crew ' + ((s.byArea.CREW || {}).tvs || 0), '#00e5ff', 'data-vstatus=""') +
+    kpi('Fully Configured', s.fullyConfigured, pct(s.fullyConfigured, s.tvs) + '% of TVs', '#39ff88', 'data-vstatus="Fully Configured"') +
+    kpi('In Progress', s.inProgress, pct(s.inProgress, s.tvs) + '% of TVs', '#ffb703', 'data-vstatus="In Progress"') +
+    kpi('Not Started', s.notStarted, toGo.toLocaleString() + ' TVs still to install', '#8aa0c0', 'data-vstatus="Not Started"');
+  $('venueChecks').innerHTML = VENUE_CHECKS.map(k => {
+    const n = s[k] || 0, p = pct(n, s.tvs);
+    return '<button type="button" class="vk-card' + (venueFilter.check === k ? ' active' : '') + '" style="--gc:' + VENUE_COLORS[k] + '" data-vcheck="' + esc(k) + '"><span>' + esc(k) + '</span><strong>' + p + '%</strong><small>' + n + ' of ' + s.tvs + ' TVs</small><div class="sb-track"><i style="width:' + p + '%"></i></div></button>';
+  }).join('');
+  document.querySelectorAll('#venueKpis [data-vstatus]').forEach(b => b.classList.toggle('active', !!venueFilter.status && b.dataset.vstatus === venueFilter.status));
+  const sizes = Object.keys(s.bySize).sort((a, b) => Number(a) - Number(b));
+  const tot = s;
+  $('venueSizeRows').innerHTML = sizes.map(z => { const x = s.bySize[z];
+    return '<tr class="vt-click" data-vsize="' + esc(z) + '"><td><b>' + (z === '?' ? 'Size not set' : esc(z) + '"') + '</b></td><td><b>' + x.tvs + '</b></td>' + VENUE_CHECKS.map(k => '<td>' + x[k] + '</td>').join('') + '</tr>'; }).join('') +
+    '<tr><td><b>TOTAL</b></td><td><b>' + tot.tvs + '</b></td>' + VENUE_CHECKS.map(k => '<td><b>' + tot[k] + '</b></td>').join('') + '</tr>';
+  const srcs = Object.keys(s.bySource).sort((a, b) => s.bySource[b].tvs - s.bySource[a].tvs);
+  $('venueSourceRows').innerHTML = srcs.map(k => { const x = s.bySource[k];
+    return '<tr class="vt-click" data-vsource="' + esc(k) + '"><td>' + (k === '(none)' ? '<i>Source not set</i>' : esc(k)) + '</td><td><b>' + x.tvs + '</b></td><td>' + x['Installed'] + '</td><td>' + x['Configured'] + '</td><td>' + x['Tested'] + '</td><td>' + x['Held Up'] + '</td></tr>'; }).join('');
+  const decks = Object.keys(s.byDeck).sort(deckSort);
+  $('venueDeckRows').innerHTML = decks.map(d => { const x = s.byDeck[d], src = x.sources || {};
+    const chips = Object.keys(src).sort((a, b) => src[b] - src[a]).map(k => '<span class="srcchip">' + esc(k) + '<b>' + src[k] + '</b></span>').join('');
+    return '<tr class="vt-click" data-vdeck="' + esc(d) + '"><td><b>' + (d === '?' ? 'No deck' : 'Deck ' + esc(d)) + '</b></td><td>' + (x.venueCount || 0) + '</td><td><b>' + x.tvs + '</b></td><td>' + x['Installed'] + '</td><td>' + x['Configured'] + '</td><td>' + x['Held Up'] + '</td><td>' + Math.max(0, x.tvs - x['Installed']) + '</td><td class="wrapcell">' + chips + '</td></tr>'; }).join('');
+}
+function fillVenueFilterOptions() {
+  const keep = (id, values, label) => {
+    const el = $(id), old = el.value;
+    el.innerHTML = '<option value="">' + label + '</option>' + values.map(v => '<option value="' + esc(v.value) + '">' + esc(v.text) + '</option>').join('');
+    if (values.some(v => v.value === old)) el.value = old;
+  };
+  keep('vDeck', [...new Set(venues.map(v => v.deck || '?'))].sort(deckSort).map(d => ({ value: d, text: d === '?' ? 'No deck' : 'Deck ' + d })), 'All decks');
+  keep('vSize', [...new Set(venues.map(v => v.size).filter(Boolean))].sort((a, b) => a - b).map(z => ({ value: z, text: z + '"' }))
+    .concat(venues.some(v => !v.size) ? [{ value: '?', text: 'Size not set' }] : []), 'All sizes');
+  keep('vSource', [...new Set(venues.map(v => v.source).filter(Boolean))].sort().map(x => ({ value: x, text: x }))
+    .concat(venues.some(v => !v.source) ? [{ value: '(none)', text: 'Source not set' }] : []), 'All sources');
+  if ($('vCheck').options.length < 2) $('vCheck').innerHTML = '<option value="">All items</option>' + VENUE_CHECKS.map(k => '<option>' + esc(k) + '</option>').join('');
+}
+function venueMatches(v) {
+  const q = $('vSearch').value.trim().toLowerCase();
+  const d = $('vDeck').value, a = $('vArea').value, z = $('vSize').value, src = $('vSource').value, st = $('vStatus').value, ck = $('vCheck').value;
+  if (q && ![v.venue, v.location, v.source, v.remarks, v.id].join(' ').toLowerCase().includes(q)) return false;
+  if (d && (v.deck || '?') !== d) return false;
+  if (a && v.area !== a) return false;
+  if (z && (v.size || '?') !== z) return false;
+  if (src && (v.source || '(none)') !== src) return false;
+  if (st && v.status !== st) return false;
+  if (ck) { const on = !!v.checks[ck]; if ($('vCheckState').value === 'done' ? !on : on) return false; }
+  return true;
+}
+function anyVenueDirty() { return !!document.querySelector('.vcard[data-dirty="true"]'); }
+function renderVenues(force) {
+  renderVenueStats();
+  if ((!force && anyVenueDirty()) || (focusCard && focusKind === 'venue')) { venuePendingRender = true; updateVenueTabs(); return; }
+  venuePendingRender = false;
+  fillVenueFilterOptions();
+  const list = venues.filter(venueMatches);
+  const host = $('venueList'); host.innerHTML = '';
+  const byDeck = {};
+  list.forEach(v => { (byDeck[v.deck || '?'] = byDeck[v.deck || '?'] || []).push(v); });
+  Object.keys(byDeck).sort(deckSort).forEach(d => {
+    const rows = byDeck[d], tvs = rows.reduce((n, v) => n + v.qty, 0), inst = rows.reduce((n, v) => n + (v.checks['Installed'] ? v.qty : 0), 0);
+    const src = {}; rows.forEach(v => { if (v.source) src[v.source] = (src[v.source] || 0) + v.qty; });
+    const head = document.createElement('div'); head.className = 'deckGroup';
+    head.innerHTML = '<h3>' + (d === '?' ? 'No deck given' : 'Deck ' + esc(d)) + ' · ' + rows.length + ' location' + (rows.length === 1 ? '' : 's') + ' · ' + tvs + ' TV' + (tvs === 1 ? '' : 's') + ' · ' + inst + ' installed</h3>' +
+      '<div class="muted">Sources: ' + (Object.keys(src).sort((a, b) => src[b] - src[a]).map(k => '<span class="srcchip">' + esc(k) + '<b>' + src[k] + '</b></span>').join('') || 'not set yet') + '</div>';
+    host.appendChild(head);
+    const grid = document.createElement('div'); grid.className = 'vgrid';
+    rows.forEach(v => grid.appendChild(venueCard(v)));
+    host.appendChild(grid);
+  });
+  $('venueEmpty').hidden = list.length > 0;
+  $('venueEmpty').textContent = editorUnlocked ? 'No public area TVs match your filters. Press Reset filters to show all.' : 'Sign in (top of the page) to see the venue cards and update them.';
+  const tv = list.reduce((n, v) => n + v.qty, 0);
+  $('vCount').textContent = 'Showing ' + list.length + ' of ' + venues.length + ' locations · ' + tv + ' TVs';
+  updateVenueTabs();
+}
+function canAssignVenues() { return editorUnlocked && ['Julius L','Cesar'].includes(chosenTech()); }
+function venueCard(v) {
+  const a = document.createElement('article');
+  a.className = 'vcard ' + techClass(v.assignedTo) + (v.checks['Held Up'] ? ' held' : '');
+  a.dataset.id = v.id;
+  a.dataset.base = JSON.stringify(v.checks);
+  a.dataset.baseRemarks = v.remarks || '';
+  const canEdit = editorUnlocked && (!v.assignedTo || v.assignedTo === chosenTech() || isAdmin());
+  a.innerHTML =
+    '<div class="vhead"><div style="min-width:0"><div class="vname">' + esc(v.venue) + '</div><div class="vloc">' + esc(v.location || '—') + '</div></div>' +
+    '<div class="head-actions"><span class="pill ' + pillClass(v.status) + '">' + esc(v.status) + '</span>' +
+    '<span class="pill lockpill"' + (v.locked ? '' : ' hidden') + ' title="Locked by Julius L">🔒 LOCKED</span>' +
+    (isAdmin() ? '<label class="selbox lockbox" title="Lock: other technicians cannot untick items saved as YES"><input type="checkbox" data-vlockrow' + (v.locked ? ' checked' : '') + '>🔒 Lock</label>' : '') +
+    '<button type="button" class="open-full" title="Open full screen">⛶ OPEN</button>' +
+    '<button type="button" class="back-top" title="Back to the Public Areas dashboard">↑ TOP</button></div></div>' +
+    '<div class="vbadges"><span class="vbadge">Deck ' + esc(v.deck || '—') + '</span><span class="vbadge qty">' + (v.size ? esc(v.size) + '"' : 'Size not set') + ' × ' + v.qty + '</span>' +
+    '<span class="vbadge' + (v.area === 'CREW' ? ' crew' : '') + '">' + (v.area === 'CREW' ? 'CREW AREA' : 'PAX AREA') + '</span>' +
+    '<span class="vbadge src" title="Source">SOURCE: ' + esc(v.source || 'not set') + '</span></div>' + (!v.size || !v.source ? '<div class="meta" style="color:#ffe7b3;margin-top:6px">TV size / qty / source not filled in yet — update this row in the Public Area TVs sheet.</div>' : '') +
+    '<section class="tv-checklist"><h3>Checklist' + (v.qty > 1 ? ' — all ' + v.qty + ' TVs' : '') + '</h3>' +
+    VENUE_CHECKS.map(k => { const lk = lockedFor(v.checks[k], v.locked);
+      return '<label class="check' + (k === 'Held Up' ? ' heldup' : '') + '"><input type="checkbox" data-vfield="' + esc(k) + '"' + (v.checks[k] ? ' checked' : '') + (lk ? ' disabled data-locked title="Locked by Julius L"' : '') + '><span>' + esc(k) + '</span><small>' + (v.checks[k] ? (lk ? 'YES 🔒' : 'YES') : '') + '</small></label>'; }).join('') +
+    '</section>' +
+    '<label class="remarks">Remarks<textarea data-vremarks maxlength="2000" placeholder="Issues, parts needed, why it is held up…">' + esc(v.remarks || '') + '</textarea></label>' +
+    (canAssignVenues() ? '<label class="assign">Assigned Technician<select data-vassign><option value="">Unassigned</option>' + TECHS.map(t => '<option' + (t === v.assignedTo ? ' selected' : '') + '>' + esc(t) + '</option>').join('') + '</select></label>'
+      : '<div class="meta" style="margin-top:8px">Assigned to <b>' + esc(v.assignedTo || 'nobody yet') + '</b></div>') +
+    '<div class="meta">Last updated by <strong class="last-by">' + esc(v.checkBy || 'Not recorded') + '</strong> · <span class="last-at">' + esc(v.checkedAt || 'Not recorded') + '</span></div>' +
+    '<button type="button" class="btn save">Save</button>';
+  a.querySelector('.back-top').addEventListener('click', ev => { ev.stopPropagation(); $('venueView').scrollIntoView({ block: 'start' }); });
+  const vLockBox = a.querySelector('[data-vlockrow]');
+  if (vLockBox) vLockBox.addEventListener('change', ev => { ev.stopPropagation(); setVenueLockFor([v.id], vLockBox.checked, true); });
+  a.querySelector('.open-full').addEventListener('click', ev => { ev.stopPropagation(); openFocus(a); });
+  const mark = () => { a.dataset.dirty = 'true'; };
+  a.querySelectorAll('[data-vfield]').forEach(i => i.addEventListener('change', () => {
+    if (i.checked && TICK_CONFIRM[i.dataset.vfield]) {
+      i.checked = false;
+      confirmTick(i.dataset.vfield, v.venue + (v.location ? ' — ' + v.location : ''), comment => {
+        i.checked = true;
+        appendRemark(a.querySelector('[data-vremarks]'), i.dataset.vfield + ': ' + comment);
+        venueTickChanged(i);
+      });
+      return;
+    }
+    venueTickChanged(i);
+  }));
+  function venueTickChanged(i) {
+    mark();
+    i.parentElement.querySelector('small').textContent = i.checked ? 'YES' : '';
+    const checks = {}; a.querySelectorAll('[data-vfield]').forEach(x => checks[x.dataset.vfield] = x.checked);
+    const st = venueStatusOf(checks), p = a.querySelector('.pill'); p.textContent = st; p.className = 'pill ' + pillClass(st);
+    a.classList.toggle('held', !!checks['Held Up']);
+  }
+  a.querySelector('[data-vremarks]').addEventListener('input', mark);
+  const sel = a.querySelector('[data-vassign]'); if (sel) sel.addEventListener('change', mark);
+  a.querySelector('.save').addEventListener('click', () => saveVenueCard(a));
+  if (!canEdit) {
+    a.querySelectorAll('input,textarea,select,.save').forEach(el => el.disabled = true);
+    a.querySelector('.save').textContent = editorUnlocked ? 'Assigned to ' + v.assignedTo + ' — read-only' : 'Read-only — sign in to edit';
+  }
+  return a;
+}
+function findVenueCard(id) { const k = String(id || '').toUpperCase(); return [...document.querySelectorAll('.vcard')].find(c => String(c.dataset.id || '').toUpperCase() === k) || null; }
+function venueLabel(a) { const v = venues.find(x => venueKey(x) === String(a.dataset.id || '').toUpperCase()) || {}; return (v.venue || 'Location') + (v.location ? ' — ' + v.location : '') + ' (' + a.dataset.id + ')'; }
+/** Updates the local list (and the card, when it is on screen) after a confirmed public-area save. */
+function applyVenueSaved(a, data, r) {
+  const checks = data.checks || {};
+  const v = venues.find(x => venueKey(x) === String(r.id || data.id).toUpperCase());
+  if (v) { v.checks = Object.assign({}, checks); v.status = r.status; v.remarks = r.remarks; v.assignedTo = r.assignedTo; v.checkBy = r.checkBy; v.checkedAt = r.checkedAt; }
+  if (a) {
+    a.dataset.dirty = 'false'; a.dataset.base = JSON.stringify(checks); a.dataset.baseRemarks = r.remarks || '';
+    a.querySelector('.last-by').textContent = r.checkBy; a.querySelector('.last-at').textContent = r.checkedAt;
+  }
+  venueSignature = JSON.stringify(venues) + '|lock:' + lockTicked;
+  if (r.dataVersion) dataVersion = String(r.dataVersion);
+  renderVenueStats(); loadHistory();
+  if (venuePendingRender && !anyVenueDirty()) renderVenues(false);
+}
+function saveVenueCard(a, done) {
+  if (!editorUnlocked || !authToken) { msg('Please sign in first.', 'error'); return; }
+  const checks = {}; a.querySelectorAll('[data-vfield]').forEach(i => checks[i.dataset.vfield] = i.checked);
+  let base = {}; try { base = JSON.parse(a.dataset.base || '{}'); } catch (_) {}
+  const data = { id: a.dataset.id, checks, baseChecks: base, remarks: a.querySelector('[data-vremarks]').value, baseRemarks: a.dataset.baseRemarks || '',
+    authToken, sessionId, requestId: 'venue-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10) };
+  const sel = a.querySelector('[data-vassign]'); if (sel) data.assignedTo = sel.value;
+  const label = venueLabel(a), b = a.querySelector('.save');
+  const finish = ok => { b.disabled = false; b.textContent = 'Save'; if (done) done(ok); };
+  const keep = opts => queuePending(0, data, label, Object.assign({ kind: 'venue' }, opts || {})); // card keeps its ticks until confirmed
+  if (!navigator.onLine) {
+    keep();
+    finish(false);
+    msg(label + ' is queued on this device and will sync when online.', 'success');
+    return;
+  }
+  b.disabled = true; b.textContent = 'Saving…';
+  google.script.run.withSuccessHandler(r => {
+    if (r && r.success) { applyVenueSaved(a, data, r); removePendingVenue(data.id); msg(r.message, 'success'); finish(true); return; }
+    if (r && r.locked) { msg(label + ': ' + r.message, 'error'); a.dataset.dirty = 'false'; finish(false); load(true); return; }
+    if (r && r.notFound) { msg((r && r.message) || 'Location not found.', 'error'); a.dataset.dirty = 'false'; finish(false); load(true); return; }
+    const reason = r && r.unauthorized ? 'unauthorized' : r && r.conflict ? 'conflict' : r && r.forbidden ? 'forbidden' : 'error';
+    keep({ blocked: reason !== 'error', reason, lastError: (r && r.message) || 'Save not confirmed.' });
+    msg(label + ': ' + ((r && r.message) || 'Save not confirmed.') + ' Your change is kept in the pending queue.', 'error');
+    if (reason === 'unauthorized') logout(true);
+    finish(false);
+  }).withFailureHandler(e => {
+    keep({ reason: 'error', lastError: errText(e) });
+    msg('Server did not confirm ' + label + '. The change is kept on this device and will sync when online. ' + errText(e), 'error');
+    finish(false);
+  }).saveVenue(data);
+}
+function removePendingVenue(id) { const k = 'VENUE:' + String(id || '').toUpperCase(); pendingQueue = pendingQueue.filter(x => pendingKeyOf(x) !== k); writePending(); }
+// ---------------------------------------------------------------- checklist lock (Julius L)
+function updateLockUi() {
+  const admin = isAdmin();
+  $('lockPanel').hidden = !admin;
+  $('lockTickedToggle').checked = lockTicked;
+  $('lockNote').hidden = !(lockTicked && editorUnlocked && !admin);
+  document.querySelectorAll('[data-vadmin]').forEach(el => { el.hidden = !admin; });
+}
+/** Julius L: lock / unlock chosen cabins. items = [{cabin, cabinType}] */
+function setCabinLockFor(items, on, single) {
+  if (!isAdmin() || !authToken) { msg('Only Julius L can lock cabins.', 'error'); return; }
+  if (!items.length) { msg('Select one or more cabins first.', 'error'); return; }
+  if (!single && !confirm((on ? 'Lock ' : 'Unlock ') + items.length + ' cabin(s)?' + (on ? '\nOther technicians will not be able to untick items already saved as YES on these cabins.' : ''))) return;
+  google.script.run.withSuccessHandler(r => {
+    if (!r || !r.success) { msg((r && r.message) || 'Could not change the lock.', 'error'); if (r && r.unauthorized) logout(true); syncLockBadges(); return; }
+    (r.results || []).forEach(x => { const c = findLocalCabin(x.cabinType, x.cabin); if (c) c.locked = !!x.locked; });
+    if (r.dataVersion) dataVersion = String(r.dataVersion);
+    syncLockBadges(); loadHistory();
+    if (categoryFilter === '__LOCKED__') render();
+    msg(r.message, 'success');
+  }).withFailureHandler(e => { msg('Lock change failed: ' + errText(e), 'error'); syncLockBadges(); })
+    .setCabinLocks(authToken, sessionId, items, !!on);
+}
+/** Julius L: lock / unlock public-area locations by ID. */
+function setVenueLockFor(ids, on, single) {
+  if (!isAdmin() || !authToken) { msg('Only Julius L can lock locations.', 'error'); return; }
+  if (!ids.length) { msg('No locations are shown.', 'error'); return; }
+  if (!single && !confirm((on ? 'Lock ' : 'Unlock ') + ids.length + ' location(s)?')) return;
+  google.script.run.withSuccessHandler(r => {
+    if (!r || !r.success) { msg((r && r.message) || 'Could not change the lock.', 'error'); if (r && r.unauthorized) logout(true); syncLockBadges(); return; }
+    (r.results || []).forEach(x => { const v = venues.find(y => venueKey(y) === String(x.id).toUpperCase()); if (v) v.locked = !!x.locked; });
+    venueSignature = JSON.stringify(venues) + '|lock:' + lockTicked;
+    if (r.dataVersion) dataVersion = String(r.dataVersion);
+    syncLockBadges(); loadHistory();
+    msg(r.message, 'success');
+  }).withFailureHandler(e => { msg('Lock change failed: ' + errText(e), 'error'); syncLockBadges(); })
+    .setVenueLocks(authToken, sessionId, ids, !!on);
+}
+/** Updates the 🔒 badge and Lock box on cards already on screen (no rebuild, so unsaved ticks stay). */
+function syncLockBadges() {
+  document.querySelectorAll('.cabin').forEach(a => {
+    const c = findLocalCabin(a.dataset.type, a.dataset.cabin); if (!c) return;
+    const b = a.querySelector('.lockpill'); if (b) b.hidden = !c.locked;
+    const k = a.querySelector('[data-lockrow]'); if (k) k.checked = !!c.locked;
+  });
+  document.querySelectorAll('.vcard').forEach(a => {
+    const v = venues.find(y => venueKey(y) === String(a.dataset.id || '').toUpperCase()); if (!v) return;
+    const b = a.querySelector('.lockpill'); if (b) b.hidden = !v.locked;
+    const k = a.querySelector('[data-vlockrow]'); if (k) k.checked = !!v.locked;
+  });
+}
+function toggleChecklistLock() {
+  const t = $('lockTickedToggle'), on = t.checked;
+  if (!isAdmin()) { t.checked = lockTicked; return; }
+  t.disabled = true; $('lockMsg').textContent = 'Saving…';
+  google.script.run.withSuccessHandler(r => {
+    t.disabled = false;
+    if (!r || !r.success) { t.checked = lockTicked; $('lockMsg').textContent = (r && r.message) || 'Could not change the lock.'; if (r && r.unauthorized) logout(true); return; }
+    lockTicked = !!r.locked;
+    if (r.dataVersion) dataVersion = String(r.dataVersion);
+    $('lockMsg').textContent = r.message;
+    updateLockUi(); loadHistory();
+  }).withFailureHandler(e => { t.disabled = false; t.checked = lockTicked; $('lockMsg').textContent = 'Could not change the lock: ' + errText(e); })
+    .setChecklistLock(authToken, sessionId, on);
+}
+function applyVenueSnapshot(s) {
+  venueServerStats = s.venueStats || null;
+  const ver = $('scriptVersion'); if (ver) ver.textContent = s.scriptVersion ? 'Script version: ' + s.scriptVersion : 'Script version: OLD — create a new deployment version';
+  if (s.venueError) msg('Public Area TVs could not load: ' + s.venueError, 'error');
+  const next = Array.isArray(s.venues) ? s.venues : [];
+  const sig = JSON.stringify(next) + '|lock:' + lockTicked;
+  if (sig !== venueSignature || !document.querySelector('#venueList .vcard')) { venueSignature = sig; venues = next; renderVenues(false); }
+  else renderVenueStats();
+}
+function setView(view) {
+  const v = view === 'venues' ? 'venues' : 'cabins';
+  document.body.classList.toggle('view-venues', v === 'venues');
+  document.querySelectorAll('.viewSwitch [data-view]').forEach(b => { b.classList.toggle('active', b.dataset.view === v); b.setAttribute('aria-selected', b.dataset.view === v ? 'true' : 'false'); });
+  try { localStorage.setItem('nclEscapeTrackerView', v); } catch (_) {}
+}
+function initVenues() {
+  document.querySelectorAll('.viewSwitch [data-view]').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+  let saved = 'cabins'; try { saved = localStorage.getItem('nclEscapeTrackerView') || 'cabins'; } catch (_) {}
+  setView(saved);
+  ['vSearch'].forEach(id => $(id).addEventListener('input', () => renderVenues(true)));
+  ['vDeck','vArea','vSize','vSource','vStatus','vCheck','vCheckState'].forEach(id => $(id).addEventListener('change', () => {
+    venueFilter.check = $('vCheck').value; venueFilter.status = $('vStatus').value; renderVenues(true);
+  }));
+  $('vReset').addEventListener('click', () => {
+    ['vSearch','vDeck','vArea','vSize','vSource','vStatus','vCheck'].forEach(id => $(id).value = '');
+    $('vCheckState').value = 'done'; venueFilter = { check: '', status: '' }; renderVenues(true);
+  });
+  const jump = () => $('venueList').scrollIntoView({ block: 'start' });
+  $('venueView').addEventListener('click', ev => {
+    const t = ev.target.closest('[data-vcheck],[data-vstatus],[data-vsize],[data-vsource],[data-vdeck]');
+    if (!t) return;
+    if (anyVenueDirty() && !confirm('A location has unsaved changes. Changing the filter keeps them on screen only if you save first. Continue anyway?')) return;
+    const d = t.dataset;
+    if (d.vcheck !== undefined) { const same = $('vCheck').value === d.vcheck; $('vCheck').value = same ? '' : d.vcheck; $('vCheckState').value = 'done'; }
+    if (d.vstatus !== undefined) $('vStatus').value = $('vStatus').value === d.vstatus ? '' : d.vstatus;
+    if (d.vsize !== undefined) $('vSize').value = $('vSize').value === d.vsize ? '' : d.vsize;
+    if (d.vsource !== undefined) $('vSource').value = $('vSource').value === d.vsource ? '' : d.vsource;
+    if (d.vdeck !== undefined) $('vDeck').value = $('vDeck').value === d.vdeck ? '' : d.vdeck;
+    venueFilter.check = $('vCheck').value; venueFilter.status = $('vStatus').value;
+    renderVenues(true); jump();
+  });
+}
+
+
+// ---------------------------------------------------------------- paged cabin list
+function updateMoreButton() {
+  const left = Math.max(0, filtered.length - renderedCount);
+  $('gridMore').hidden = left <= 0;
+  $('showMoreBtn').textContent = 'Show more cabins (' + left.toLocaleString() + ' more)';
+  $('count').textContent = 'Showing ' + renderedCount.toLocaleString() + ' of ' + filtered.length.toLocaleString() + ' matching · ' + cabins.length.toLocaleString() + ' total';
+}
+function renderMore() {
+  if (renderedCount >= filtered.length) return;
+  const next = filtered.slice(renderedCount, renderedCount + PAGE_SIZE), frag = document.createDocumentFragment();
+  next.forEach(c => frag.appendChild(card(c)));
+  $('grid').appendChild(frag);
+  renderedCount += next.length; pageLimit = renderedCount;
+  updateMoreButton(); updateBulkBar();
+}
+function initPaging() {
+  $('showMoreBtn').addEventListener('click', renderMore);
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(entries => {
+      if (entries.some(e => e.isIntersecting) && !$('gridMore').hidden && !focusCard) renderMore();
+    }, { rootMargin: '600px 0px' }).observe($('gridMore'));
+  }
+}
+
+// ---------------------------------------------------------------- Public Areas: Pax / Crew tabs + swipe (like Guest / Crew cabins)
+const VENUE_TAB_ORDER = ['PAX', 'CREW', ''];
+function updateVenueTabs() {
+  const a = $('vArea').value, n = { PAX: 0, CREW: 0 };
+  venues.forEach(v => { n[v.area === 'CREW' ? 'CREW' : 'PAX']++; });
+  const set = (id, x) => { const el = $(id); if (el) el.textContent = Number(x).toLocaleString(); };
+  set('vTabPAX', n.PAX); set('vTabCREW', n.CREW); set('vTabALL', n.PAX + n.CREW);
+  document.querySelectorAll('#venueTabs [data-varea]').forEach(b => {
+    const on = b.dataset.varea === a; b.classList.toggle('active', on); b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+}
+function switchVenueArea(area, dir) {
+  if ($('vArea').value === area) return;
+  if (anyVenueDirty() && !confirm('A location has unsaved changes. Switch anyway? (Save it first to keep the ticks.)')) return;
+  $('vArea').value = area;
+  renderVenues(true);
+  const l = $('venueList');
+  l.classList.remove('slide-next', 'slide-prev'); void l.offsetWidth;
+  l.classList.add(dir < 0 ? 'slide-prev' : 'slide-next');
+  setTimeout(() => l.classList.remove('slide-next', 'slide-prev'), 320);
+  const top = $('venueTabs').getBoundingClientRect().top;
+  if (top < 0 || top > window.innerHeight) $('venueTabs').scrollIntoView({ block: 'start' });
+}
+function initVenueSwipe() {
+  document.querySelectorAll('#venueTabs [data-varea]').forEach(b => b.addEventListener('click', () => {
+    const from = VENUE_TAB_ORDER.indexOf($('vArea').value), to = VENUE_TAB_ORDER.indexOf(b.dataset.varea);
+    switchVenueArea(b.dataset.varea, to > from ? 1 : -1);
+  }));
+  $('vArea').addEventListener('change', updateVenueTabs);
+  const l = $('venueList'); let sx = null, sy = null, st = 0;
+  l.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1 || e.target.closest('textarea,select,input[type=text]')) { sx = null; return; }
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = Date.now();
+  }, { passive: true });
+  l.addEventListener('touchend', e => {
+    if (sx == null || focusCard) { sx = null; return; }
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy; sx = null;
+    if (Math.abs(dx) < 80 || Math.abs(dx) < Math.abs(dy) * 2 || Date.now() - st > 800) return;
+    const i = Math.max(0, VENUE_TAB_ORDER.indexOf($('vArea').value));
+    const next = VENUE_TAB_ORDER[i + (dx < 0 ? 1 : -1)];
+    if (next !== undefined) switchVenueArea(next, dx < 0 ? 1 : -1);
+  });
+  updateVenueTabs();
+}
+// ---------------------------------------------------------------- init
+function init() {
+  initTickModal();
+  initVenues();
+  initVenueSwipe();
+  initCabinSwipe();
+  initFocusMode();
+  initFocusSwipe();
+  initBoardSwipe();
+  const img = $('heroPhoto');
+  if (!img.getAttribute('src')) img.parentNode.hidden = true;
+  img.addEventListener('error', () => { img.parentNode.hidden = true; });
+  pendingQueue = readPending(); updatePendingPanel();
+  $('unlockBtn').addEventListener('click', signIn);
+  $('editCode').addEventListener('keydown', e => { if (e.key === 'Enter') signIn(); });
+  $('logoutBtn').addEventListener('click', () => logout(false));
+  $('activeTech').addEventListener('change', () => { if (editorUnlocked) { logout(false); $('identityNote').textContent = 'Account changed. Sign in again.'; } });
+  $('togglePassword').addEventListener('click', () => {
+    const f = $('editCode'), show = f.type === 'password';
+    f.type = show ? 'text' : 'password'; $('togglePassword').textContent = show ? 'Hide' : 'Show';
+  });
+  $('pastePassword').addEventListener('click', async () => {
+    try { const v = await navigator.clipboard.readText(); if (v) { $('editCode').value = v; } else $('identityNote').textContent = 'Clipboard is empty.'; }
+    catch (_) { $('editCode').focus(); $('identityNote').textContent = 'Press and hold the password field and choose Paste.'; }
+  });
+  $('refreshUsers').addEventListener('click', () => { heartbeat(); refreshActiveUsers(); loadHistory(); });
+  $('retryPending').addEventListener('click', () => retryPending(true));
+  $('lockTickedToggle').addEventListener('change', toggleChecklistLock);
+  const lockSel = on => setCabinLockFor(selectedCabinList().map(c => ({ cabin: c.cabin, cabinType: c.cabinType })), on, false);
+  $('bulkLock').addEventListener('click', () => lockSel(true));
+  $('bulkUnlock').addEventListener('click', () => lockSel(false));
+  $('vLockShown').addEventListener('click', () => setVenueLockFor(venues.filter(venueMatches).map(v => v.id), true, false));
+  $('vUnlockShown').addEventListener('click', () => setVenueLockFor(venues.filter(venueMatches).map(v => v.id), false, false));
+  const setDashType = t => { if ($('type').value !== t) { $('type').value = t; populateDecks(); } };
+  $('statusBoard').addEventListener('click', ev => {
+    const b = ev.target.closest('[data-type]'); if (!b) return;
+    const d = b.dataset, sameType = $('type').value === d.type;
+    setDashType(d.type);
+    if (d.status) { statusFilter = d.status; $('status').value = statusFilter; checkFilter = ''; }
+    else {
+      const f = d.stage ? '__STAGE__:' + d.stage : d.check;
+      checkFilter = (sameType && checkFilter === f) ? '' : f; statusFilter = 'all'; $('status').value = 'all';
+    }
+    render(); $('listTitle').scrollIntoView({ block: 'start' });
+  });
+  // TVs Installed cards: tap to list cabins that still need TVs (tap again to clear).
+  $('tvCountBoard').addEventListener('click', ev => {
+    const b = ev.target.closest('[data-tvtype]'); if (!b) return;
+    const same = $('type').value === b.dataset.tvtype && checkFilter === '__TVTODO__';
+    setDashType(b.dataset.tvtype);
+    statusFilter = 'all'; $('status').value = 'all';
+    checkFilter = same ? '' : '__TVTODO__';
+    render();
+    $('listTitle').scrollIntoView({ block: 'start' });
+  });
+  $('search').addEventListener('input', () => render());
+  ['deck','status','assignedTech'].forEach(id => $(id).addEventListener('change', () => { statusFilter = $('status').value; render(); }));
+  $('type').addEventListener('change', () => { populateDecks(); render(); });
+  $('checklistCategory').addEventListener('change', () => { categoryFilter = $('checklistCategory').value; checkFilter = ''; render(); });
+  $('checklistState').addEventListener('change', () => { categoryState = $('checklistState').value; render(); });
+  $('excelCabinFile').addEventListener('change', e => handleUpload(e.target.files && e.target.files[0]));
+  $('clearExcelFilter').addEventListener('click', () => { uploadedCabinKeys = null; uploadedRemarks = new Map(); uploadedAssignments = new Map(); uploadedWhat = new Map(); uploadedBadTechs = 0; if (excelAssignSelection) { selectedAssignRows.clear(); excelAssignSelection = false; $('assignExcelOnlyWrap').hidden = true; if (isAdmin()) renderAssignmentList(); } $('excelCabinFile').value = ''; $('assignExcelFile').value = ''; $('assignExcelStatus').textContent = ''; excelStatus('Excel filter cleared.'); render(); });
+  $('saveUploadedRemarks').addEventListener('click', saveUploadedRemarks);
+  $('saveUploadedAssignments').addEventListener('click', saveUploadedAssignments);
+  $('downloadAssignExcel').addEventListener('click', downloadAssignmentExcel);
+  $('assignExcelFile').addEventListener('change', ev => { const f = ev.target.files && ev.target.files[0]; if (f) { $('assignExcelStatus').textContent = 'Reading ' + f.name + '…'; handleUpload(f); } });
+  $('batchApply').addEventListener('click', applyBatch);
+  $('batchTarget').addEventListener('change', updateBatchPanel);
+  $('bulkSelectShown').addEventListener('click', () => { filtered.forEach(c => selectedCabins.add(keyOfCabin(c))); updateBulkBar(); updateBatchPanel(); });
+  $('bulkClear').addEventListener('click', () => { selectedCabins.clear(); updateBulkBar(); updateBatchPanel(); });
+  $('bulkSaveAll').addEventListener('click', saveAllChanged);
+  $('bulkGoBatch').addEventListener('click', () => { $('batchTarget').value = 'selected'; updateBatchPanel(); $('batchPanel').scrollIntoView({ block: 'start' }); });
+  $('refresh').addEventListener('click', () => { load(true); loadHistory(); refreshActiveUsers(); });
+  $('reset').addEventListener('click', () => {
+    ['search'].forEach(id => $(id).value = '');
+    $('type').value = 'ALL'; $('deck').value = ''; $('status').value = 'all'; $('assignedTech').value = '';
+    $('checklistCategory').value = ''; $('checklistState').value = 'all';
+    statusFilter = 'all'; checkFilter = ''; categoryFilter = ''; categoryState = 'all';
+    populateDecks(); render();
+  });
+  $('assignmentSearch').addEventListener('input', renderAssignmentList);
+  ['assignmentType','assignmentDeck'].forEach(id => $(id).addEventListener('change', renderAssignmentList));
+  $('bulkAssignTech').addEventListener('change', () => {
+    if (excelAssignSelection) { $('assignmentMessage').textContent = selectedAssignRows.size + ' cabin(s) from the Excel stay selected — press "Save cabin assignments" to assign them to ' + ($('bulkAssignTech').selectedOptions[0] || {}).textContent + '.'; return; }
+    selectedAssignRows.clear();
+    const t = $('bulkAssignTech').value;
+    if (t && t !== '__UNASSIGNED__') cabins.filter(c => String(c.assignedTo || '').trim() === t).forEach(c => selectedAssignRows.add(keyOfCabin(c)));
+    renderAssignmentList();
+  });
+  $('selectVisibleAssignments').addEventListener('click', () => { visibleAssignmentCabins().forEach(c => selectedAssignRows.add(keyOfCabin(c))); renderAssignmentList(); });
+  $('clearAssignmentSelection').addEventListener('click', () => { selectedAssignRows.clear(); excelAssignSelection = false; $('assignExcelOnlyWrap').hidden = true; renderAssignmentList(); });
+  $('assignExcelOnly').addEventListener('change', renderAssignmentList);
+  $('saveCabinAssignments').addEventListener('click', saveAssignments);
+  $('exportExcel').addEventListener('click', exportExcel);
+  window.addEventListener('online', () => { updatePendingPanel(); setTimeout(() => retryPending(false), 800); });
+  window.addEventListener('offline', updatePendingPanel);
+  window.addEventListener('beforeunload', () => { try { if (authToken) google.script.run.endUserSession(sessionId, authToken); } catch (_) {} });
+  updateAdminVisibility();
+  initPaging();
+  let storedToken = ''; try { storedToken = sessionStorage.getItem(AUTH_KEY) || ''; } catch (_) {}
+  if (!storedToken) load(true); // a saved sign-in loads once, after it is verified
+  loadHistory();
+  restoreSession();
+  startLiveSync();
+  setInterval(() => {
+    if (document.visibilityState === 'hidden') return;
+    const dirty = document.querySelector('.cabin[data-dirty="true"]');
+    const editing = document.activeElement && document.activeElement.closest && document.activeElement.closest('.cabin');
+    if (!dirty && !editing && !focusCard) load(); else setRefreshStatus(focusCard && !dirty ? 'Auto-refresh paused while a cabin is open full screen' : 'Auto-refresh paused while a cabin has unsaved edits');
+    if (editorUnlocked) { heartbeat(); refreshActiveUsers(); }
+    updatePendingPanel();
+    if (navigator.onLine && editorUnlocked && pendingQueue.some(x => !x.blocked)) retryPending(false);
+  }, 30000);
+}
+init();
+</script>
+</body>
+</html>

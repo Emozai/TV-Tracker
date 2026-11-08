@@ -1,5 +1,16 @@
 # Escape TV Tracker – mobile app
 
+## Tracker web app source (`apps-script/`)
+The NCL Escape Combined PAX + Crew TV Installation Tracker (Google Apps Script):
+- `apps-script/Code.gs` – server logic + cabin inventory
+- `apps-script/Index.html` – the web app page
+- `apps-script/PasswordSetup.html` – technician password setup dialog
+- `Photo.html` (header photo) is optional and not stored here.
+
+Passwords, the admin setup key and the phone-app API key live in the
+project's Script Properties, never in these files. To restore, paste each
+file into an Apps Script project with the same name, then Deploy → Web app.
+
 Native Android + iOS app (Expo / React Native) that reads your
 PAX + Crew TV Installation Tracker through your Apps Script.
 
