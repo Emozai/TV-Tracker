@@ -490,6 +490,38 @@ td.wrapcell{white-space:normal;min-width:220px}
     <div id="venueList"></div>
     <div id="venueEmpty" class="empty" hidden>No public area TVs match your filters.</div>
   </section>
+  <section class="panel" id="inventoryPanel" hidden>
+    <details id="inventoryDetails">
+      <summary style="cursor:pointer"><h2 style="display:inline">Upload Cabins &amp; Public Areas</h2> <span class="muted" id="inventorySummary"></span></summary>
+      <div class="muted" style="margin:8px 0">Load your own list from Excel (.xlsx / .xls) or CSV. Download a template to see the column names. Only the admin sees this panel.</div>
+      <div class="excelAssign">
+        <h3>Cabins and crew offices</h3>
+        <div class="muted">Columns: <b>Cabin Type</b> (PAX or CREW) · <b>Cabin No</b> · Deck · FZ · TV Count (1–3). Only Cabin No is required. Put crew cabins and crew offices in as CREW; a crew number starting with a digit gets a "C" in front (1234 → C1234).</div>
+        <div class="row">
+          <button type="button" class="btn secondary" id="invCabinTemplate">Download cabin template (.csv)</button>
+          <label class="btn secondary" style="cursor:pointer">Choose cabin file<input id="invCabinFile" type="file" accept=".xlsx,.xls,.csv" hidden></label>
+          <button type="button" class="btn" id="invCabinSave" disabled>Save cabins</button>
+        </div>
+        <div id="invCabinStatus" class="muted" style="margin-top:6px"></div>
+      </div>
+      <div class="excelAssign">
+        <h3>Public areas</h3>
+        <div class="muted">Columns: <b>Venue</b> · Location · Deck · TV Size · QTY · <b>Area</b> (PAX or CREW) · Source. Venue or Location is required; one row = one TV location (QTY TVs).</div>
+        <div class="row">
+          <button type="button" class="btn secondary" id="invVenueTemplate">Download public area template (.csv)</button>
+          <label class="btn secondary" style="cursor:pointer">Choose public area file<input id="invVenueFile" type="file" accept=".xlsx,.xls,.csv" hidden></label>
+          <button type="button" class="btn" id="invVenueSave" disabled>Save public areas</button>
+        </div>
+        <div id="invVenueStatus" class="muted" style="margin-top:6px"></div>
+      </div>
+      <label style="display:block;margin-top:10px">When saving
+        <select id="invMode">
+          <option value="merge">Add new rows and update existing ones (keep everything else)</option>
+          <option value="replace">Replace the whole list with the file (rows not in the file are deleted)</option>
+        </select>
+      </label>
+    </details>
+  </section>
   <div class="sb-tabs cabinView" id="sbTabs" role="tablist" aria-label="Switch dashboard"><button type="button" role="tab" data-i="0" class="active">Guest (PAX)</button><button type="button" role="tab" data-i="1">Crew</button><span class="sb-swipe-hint">Swipe ← →</span></div>
   <section class="sb cabinView" id="statusBoard" aria-label="PAX and Crew installation status board"><div class="sb-card">Loading dashboard…</div><div class="sb-card">Loading dashboard…</div></section>
   <section class="panel cabinView" id="tvCountBoard" aria-label="TVs installed"><h2>TVs Installed</h2><div class="muted">Loading TV count…</div></section>
@@ -747,6 +779,7 @@ function load(force) {
     if (s && s.stats) applyStats(s.stats);
     if (s) applyVenueSnapshot(s);
     if (isAdmin()) { populateAssignmentDecks(); renderAssignmentList(); renderTechnicians(); }
+    updateInventoryPanel();
     setRefreshStatus('Last updated ' + new Date().toLocaleTimeString() + (changed ? ' · data updated' : ' · no changes'));
     if (reloadQueued) { reloadQueued = false; setTimeout(() => load(true), 50); }
   }).withFailureHandler(e => {
@@ -986,7 +1019,9 @@ function render() {
   $('grid').appendChild(frag);
   renderedCount = shown.length;
   $('empty').hidden = filtered.length > 0;
-  $('empty').textContent = editorUnlocked ? 'No cabins match your filters.' : 'Sign in to view and update cabins.';
+  $('empty').textContent = !editorUnlocked ? 'Sign in to view and update cabins.' :
+    !cabins.length ? (isAdmin() ? 'No cabins yet. Open "Upload Cabins & Public Areas" above and upload your cabin list.' : 'No cabins assigned to you yet.') :
+    'No cabins match your filters.';
   updateMoreButton();
   $('listTitle').textContent = checkFilter === '__TVTODO__' ? 'Cabins with TVs still to install' :
     checkFilter === '__REMARKS__' ? 'Cabins with Remarks' :
@@ -1358,6 +1393,7 @@ function retryPending(manual) {
 function updateAdminVisibility() {
   const allowed = isAdmin();
   $('technicianAssignmentPanel').hidden = !allowed;
+  updateInventoryPanel();
   // Export All to Excel: Julius L only. Hidden for Julius T, Alana, Cesar, Roland and signed-out users.
   $('exportPanel').hidden = !allowed;
   updateLockUi();
@@ -1693,6 +1729,116 @@ async function handleUpload(file) {
     excelStatus(summary + (isAdmin() ? pickNote : ''));
     if ($('assignExcelStatus')) $('assignExcelStatus').textContent = summary + pickNote;
   } catch (e) { excelStatus('Upload failed: ' + errText(e), true); }
+}
+// ---------------------------------------------------------------- Upload your own cabins / crew offices / public areas (admin)
+let invCabinItems = null, invVenueItems = null;
+const INV_COLS = {
+  cabin: {
+    cabin: ['cabinno','cabin','cabinnumber','cabinnr','room','roomno','roomnumber','stateroom','office','officeno','number','no'],
+    type: ['cabintype','type','category','paxcrew','crewpax','guestcrew'],
+    deck: ['deck','deckno','level'],
+    fz: ['fz','firezone','zone','mvz'],
+    tvCount: ['tvcount','tvs','numberoftvs','nooftvs','tvqty','tv','qty','quantity']
+  },
+  venue: {
+    venue: ['venue','venuename','name','publicarea','space','room'],
+    location: ['location','position','place','where','spot'],
+    deck: ['deck','deckno','level'],
+    size: ['tvsize','size','screensize','screen','inches'],
+    qty: ['qty','quantity','tvs','tvcount','count','numberoftvs'],
+    area: ['area','paxcrew','crewpax','areatype','type'],
+    source: ['source','input','signal','content','feed']
+  }
+};
+async function readTableFile(file) {
+  if (/\.csv$/i.test(file.name)) return parseCsv(await file.text());
+  await loadXlsx();
+  const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+  return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '', raw: false });
+}
+/** Finds the header row (within the first 15 rows) and turns the rows below it into objects. */
+function rowsToItems(rows, cols, required) {
+  const norm = x => String(x == null ? '' : x).trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  for (let h = 0; h < Math.min(15, rows.length); h++) {
+    const head = (rows[h] || []).map(norm), map = {}, taken = new Set();
+    Object.keys(cols).forEach(k => {
+      const i = cols[k].map(n => head.findIndex((v, j) => v === n && !taken.has(j))).find(i => i >= 0);
+      if (i !== undefined) { map[k] = i; taken.add(i); }
+    });
+    if (!required.some(k => map[k] !== undefined)) continue;
+    const items = [];
+    for (let r = h + 1; r < rows.length; r++) {
+      const row = rows[r] || [], it = {};
+      Object.keys(map).forEach(k => it[k] = String(row[map[k]] == null ? '' : row[map[k]]).trim());
+      if (required.some(k => it[k])) items.push(it);
+    }
+    return { items, found: Object.keys(map) };
+  }
+  return null;
+}
+async function invPick(kind, file) {
+  if (!file) return;
+  const st = $(kind === 'cabin' ? 'invCabinStatus' : 'invVenueStatus'), save = $(kind === 'cabin' ? 'invCabinSave' : 'invVenueSave');
+  if (!isAdmin()) { st.textContent = 'Sign in as the admin to upload.'; return; }
+  st.style.color = ''; st.textContent = 'Reading ' + file.name + '…'; save.disabled = true;
+  try {
+    const rows = await readTableFile(file);
+    const req = kind === 'cabin' ? ['cabin'] : ['venue', 'location'];
+    const p = rowsToItems(rows, INV_COLS[kind], req);
+    if (!p || !p.items.length) {
+      st.style.color = '#ffb4c0';
+      st.textContent = kind === 'cabin' ? 'No "Cabin No" column found (or it is empty). Use the cabin template.' : 'No "Venue" or "Location" column found (or they are empty). Use the public area template.';
+      return;
+    }
+    if (kind === 'cabin') {
+      invCabinItems = p.items;
+      const crew = p.items.filter(x => /crew|office|staff/i.test(x.type || '') || (!x.type && /^C\d/i.test(x.cabin))).length;
+      st.textContent = file.name + ': ' + p.items.length + ' rows (' + (p.items.length - crew) + ' passenger, ' + crew + ' crew). Columns found: ' + p.found.join(', ') +
+        (p.found.includes('type') ? '' : '. No Cabin Type column: numbers starting with "C" count as crew, the rest as passenger') + '. Press "Save cabins".';
+    } else {
+      invVenueItems = p.items;
+      const tvs = p.items.reduce((n, x) => n + Math.max(1, parseInt(x.qty, 10) || 1), 0);
+      st.textContent = file.name + ': ' + p.items.length + ' TV locations, ' + tvs + ' TVs. Columns found: ' + p.found.join(', ') + '. Press "Save public areas".';
+    }
+    save.disabled = false;
+  } catch (e) { st.style.color = '#ffb4c0'; st.textContent = 'Could not read the file: ' + errText(e); }
+}
+function invSave(kind) {
+  if (!isAdmin() || !authToken) { msg('Sign in as the admin to upload.', 'error'); return; }
+  const items = kind === 'cabin' ? invCabinItems : invVenueItems;
+  if (!items || !items.length) return;
+  const mode = $('invMode').value, what = kind === 'cabin' ? 'cabins' : 'public area TV locations';
+  const have = kind === 'cabin' ? cabins.length : venues.length;
+  const q = mode === 'replace'
+    ? 'REPLACE the whole list with ' + items.length + ' ' + what + '?\n\nRows that are not in the file are DELETED, with their ticks, remarks and assignments (' + have + ' rows now). Rows in both keep everything.'
+    : 'Add / update ' + items.length + ' ' + what + '?\n\nNew rows are added; rows already there get the Deck / FZ / TV Count (or QTY / Area / Source) from the file. Ticks, remarks and assignments are kept.';
+  if (!confirm(q)) return;
+  const b = $(kind === 'cabin' ? 'invCabinSave' : 'invVenueSave'), st = $(kind === 'cabin' ? 'invCabinStatus' : 'invVenueStatus'), label = b.textContent;
+  b.disabled = true; b.textContent = 'Saving…';
+  const run = google.script.run.withSuccessHandler(r => {
+    b.textContent = label;
+    if (!r || !r.success) { b.disabled = false; st.textContent = (r && r.message) || 'Upload failed.'; msg(st.textContent, 'error'); if (r && r.unauthorized) logout(true); return; }
+    if (kind === 'cabin') { invCabinItems = null; $('invCabinFile').value = ''; } else { invVenueItems = null; $('invVenueFile').value = ''; }
+    st.textContent = r.message; msg(r.message, 'success');
+    load(true); loadHistory();
+  }).withFailureHandler(e => { b.disabled = false; b.textContent = label; st.textContent = 'Upload failed: ' + errText(e); msg(st.textContent, 'error'); });
+  if (kind === 'cabin') run.importCabinInventory(authToken, sessionId, items, mode);
+  else run.importVenueInventory(authToken, sessionId, items, mode);
+}
+function invTemplate(kind) {
+  const csv = kind === 'cabin'
+    ? 'Cabin Type,Cabin No,Deck,FZ,TV Count\nPAX,1001,1,1,1\nPAX,1002,1,1,2\nCREW,C2001,2,1,1\nCREW,CREW OFFICE A,2,1,1\n'
+    : 'Venue,Location,Deck,TV Size,QTY,Area,Source\nMAIN LOBBY,BEHIND RECEPTION,5,55,2,PAX,DIGITAL SIGNAGE\nCREW MESS,BY THE ENTRANCE,3,43,1,CREW,IPTV\n';
+  const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv' }));
+  const a = document.createElement('a'); a.href = url; a.download = kind === 'cabin' ? 'cabin_template.csv' : 'public_area_template.csv';
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function updateInventoryPanel() {
+  const show = isAdmin();
+  $('inventoryPanel').hidden = !show;
+  if (!show) return;
+  $('inventorySummary').textContent = '· ' + cabins.length.toLocaleString() + ' cabins, ' + venues.length.toLocaleString() + ' public area locations';
+  if (!cabins.length && !venues.length) $('inventoryDetails').open = true;
 }
 // ---------------------------------------------------------------- Assignment Excel download
 function downloadAssignmentExcel() {
@@ -2055,7 +2201,8 @@ function renderVenues(force) {
     host.appendChild(grid);
   });
   $('venueEmpty').hidden = list.length > 0;
-  $('venueEmpty').textContent = editorUnlocked ? 'No public area TVs match your filters. Press Reset filters to show all.' : 'Sign in (top of the page) to see the venue cards and update them.';
+  $('venueEmpty').textContent = editorUnlocked && !venues.length ? (isAdmin() ? 'No public areas yet. Open "Upload Cabins & Public Areas" and upload your public area list.' : 'No public areas yet.') :
+    editorUnlocked ? 'No public area TVs match your filters. Press Reset filters to show all.' : 'Sign in (top of the page) to see the venue cards and update them.';
   const tv = list.reduce((n, v) => n + v.qty, 0);
   $('vCount').textContent = 'Showing ' + list.length + ' of ' + venues.length + ' locations · ' + tv + ' TVs';
   updateVenueTabs();
@@ -2407,6 +2554,12 @@ function init() {
   $('checklistCategory').addEventListener('change', () => { categoryFilter = $('checklistCategory').value; checkFilter = ''; render(); });
   $('checklistState').addEventListener('change', () => { categoryState = $('checklistState').value; render(); });
   $('excelCabinFile').addEventListener('change', e => handleUpload(e.target.files && e.target.files[0]));
+  $('invCabinFile').addEventListener('change', e => invPick('cabin', e.target.files && e.target.files[0]));
+  $('invVenueFile').addEventListener('change', e => invPick('venue', e.target.files && e.target.files[0]));
+  $('invCabinSave').addEventListener('click', () => invSave('cabin'));
+  $('invVenueSave').addEventListener('click', () => invSave('venue'));
+  $('invCabinTemplate').addEventListener('click', () => invTemplate('cabin'));
+  $('invVenueTemplate').addEventListener('click', () => invTemplate('venue'));
   $('clearExcelFilter').addEventListener('click', () => { uploadedCabinKeys = null; uploadedRemarks = new Map(); uploadedAssignments = new Map(); uploadedWhat = new Map(); uploadedBadTechs = 0; if (excelAssignSelection) { selectedAssignRows.clear(); excelAssignSelection = false; $('assignExcelOnlyWrap').hidden = true; if (isAdmin()) renderAssignmentList(); } $('excelCabinFile').value = ''; $('assignExcelFile').value = ''; $('assignExcelStatus').textContent = ''; excelStatus('Excel filter cleared.'); render(); });
   $('saveUploadedRemarks').addEventListener('click', saveUploadedRemarks);
   $('saveUploadedAssignments').addEventListener('click', saveUploadedAssignments);

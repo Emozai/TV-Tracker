@@ -7,9 +7,30 @@ The NCL Escape Combined PAX + Crew TV Installation Tracker (Google Apps Script):
 - `apps-script/PasswordSetup.html` – technician password setup dialog
 - `Photo.html` (header photo) is optional and not stored here.
 
+The code has **no built-in cabins, crew offices or public areas**. The
+tracker starts empty and the admin uploads their own lists.
+
+### Set up your own tracker
+1. Create a Google Sheet → Extensions → Apps Script. Add `Code.gs`,
+   `Index.html` and `PasswordSetup.html` (same file names).
+2. Run `setup()` once from the editor and allow the permissions.
+3. Project Settings → Script Properties: add `NCL_TRACKER_ADMIN_SETUP_KEY`
+   (any long secret). Reload the sheet and use the **NCL Tracker Admin →
+   Set / Reset Technician Passwords** menu to give each account a password.
+   Account names are in `TECHNICIANS` at the top of `Code.gs`; the admin
+   account is `Julius L`.
+4. Deploy → New deployment → Web app (Execute as: Me). Open the `/exec` link
+   and sign in as the admin.
+5. Open **Upload Cabins & Public Areas**, download the templates, fill them
+   in and upload them (.xlsx, .xls or .csv):
+   - Cabins / crew offices: `Cabin Type` (PAX or CREW), `Cabin No`, `Deck`, `FZ`, `TV Count`
+   - Public areas: `Venue`, `Location`, `Deck`, `TV Size`, `QTY`, `Area` (PAX or CREW), `Source`
+
+   "Add new and update existing" keeps all ticks, remarks and assignments.
+   "Replace the whole list" deletes rows that are not in the file.
+
 Passwords, the admin setup key and the phone-app API key live in the
-project's Script Properties, never in these files. To restore, paste each
-file into an Apps Script project with the same name, then Deploy → Web app.
+project's Script Properties, never in these files.
 
 Native Android + iOS app (Expo / React Native) that reads your
 PAX + Crew TV Installation Tracker through your Apps Script.
