@@ -20,7 +20,9 @@
  *       "Replace the whole list" makes the sheet match the file exactly: rows not in the file are removed
  *       (with their ticks and remarks); rows in both keep everything.
  *     - Each upload page has a "Download template" button with the right column names.
- *   Server functions: importCabinInventory / importVenueInventory (admin only).
+ *     - "Remove all cabins" / "Remove all public areas" empties that list (type DELETE to confirm). A backup
+ *       copy of the spreadsheet is saved to Drive first.
+ *   Server functions: importCabinInventory / importVenueInventory / clearInventory (admin only).
  *
  * FIRST-TIME SETUP
  *   1. Create a Google Sheet, open Extensions › Apps Script, and add the files above.
@@ -791,6 +793,34 @@ function importCabinInventory(token, sessionId, items, mode) {
     if (bad) notes.push(bad + ' row(s) without a cabin number skipped');
     return { success: true, added: add.length, updated, removed, dataVersion: getDataVersion(),
       message: summary + (notes.length ? ' ' + notes.join('; ') + '.' : '') };
+  } finally { if (lock.hasLock()) lock.releaseLock(); }
+}
+
+/** Removes every cabin (kind 'cabin') or every public area (kind 'venue'). Headers stay.
+ *  confirmText must be "DELETE". A backup copy of the spreadsheet is saved to Drive first. */
+function clearInventory(token, sessionId, kind, confirmText) {
+  const a = requireAdmin_(token, sessionId);
+  if (a.error) return a.error;
+  if (String(confirmText || '').trim().toUpperCase() !== 'DELETE') return { success: false, message: 'Type DELETE to confirm.' };
+  const isVenue = kind === 'venue';
+  const sh = isVenue ? ensureVenueSheet_() : sheet_();
+  const rows = Math.max(0, sh.getLastRow() - 1);
+  if (!rows) return { success: true, removed: 0, message: 'There are no ' + (isVenue ? 'public areas' : 'cabins') + ' to remove.' };
+  let backup = null;
+  try { backup = backupSpreadsheet_(); } catch (err) {
+    return { success: false, message: 'Nothing was removed: the backup copy could not be saved (' + err + '). Try again, or use "Back up now" first.' };
+  }
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(30000)) throw new Error('The tracker is busy saving another update. Please try again in a few seconds.');
+  try {
+    const last = sh.getLastRow();
+    if (last >= 2) sh.getRange(2, 1, last - 1, Math.max(1, sh.getLastColumn())).clearContent();
+    const what = isVenue ? 'public area TV locations' : 'cabins';
+    try { appendAudit_(new Date(), a.auth.username, isVenue ? 'VENUE' : 'CABINS', '', 'Removed all ' + rows + ' ' + what + ' (backup: ' + backup.name + ')', 'Remove all', String(a.auth.sessionId || '')); } catch (_) {}
+    bumpDataVersion_();
+    SpreadsheetApp.flush();
+    return { success: true, removed: rows, backupUrl: backup.url, dataVersion: getDataVersion(),
+      message: 'Removed all ' + rows + ' ' + what + '. A backup copy was saved first: "' + backup.name + '" in the Drive folder ' + BACKUP_FOLDER_NAME + '.' };
   } finally { if (lock.hasLock()) lock.releaseLock(); }
 }
 

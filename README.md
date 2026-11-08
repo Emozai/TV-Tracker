@@ -30,6 +30,8 @@ tracker starts empty and the admin uploads their own lists.
 
    "Add new and update existing" keeps all ticks, remarks and assignments.
    "Replace the whole list" deletes rows that are not in the file.
+   "🗑 Remove all cabins" / "🗑 Remove all public areas" empties a list (type
+   DELETE to confirm); a backup copy of the spreadsheet is saved to Drive first.
 
 Passwords, the admin setup key and the phone-app API key live in the
 project's Script Properties, never in these files.

@@ -501,6 +501,7 @@ td.wrapcell{white-space:normal;min-width:220px}
           <button type="button" class="btn secondary" id="invCabinTemplate">Download cabin template (.csv)</button>
           <label class="btn secondary" style="cursor:pointer">Choose cabin file<input id="invCabinFile" type="file" accept=".xlsx,.xls,.csv" hidden></label>
           <button type="button" class="btn" id="invCabinSave" disabled>Save cabins</button>
+          <button type="button" class="btn secondary" id="invCabinClear" style="border-color:#ff6b7a;color:#ffb4c0">🗑 Remove all cabins</button>
         </div>
         <div id="invCabinStatus" class="muted" style="margin-top:6px"></div>
       </div>
@@ -511,6 +512,7 @@ td.wrapcell{white-space:normal;min-width:220px}
           <button type="button" class="btn secondary" id="invVenueTemplate">Download public area template (.csv)</button>
           <label class="btn secondary" style="cursor:pointer">Choose public area file<input id="invVenueFile" type="file" accept=".xlsx,.xls,.csv" hidden></label>
           <button type="button" class="btn" id="invVenueSave" disabled>Save public areas</button>
+          <button type="button" class="btn secondary" id="invVenueClear" style="border-color:#ff6b7a;color:#ffb4c0">🗑 Remove all public areas</button>
         </div>
         <div id="invVenueStatus" class="muted" style="margin-top:6px"></div>
       </div>
@@ -1832,6 +1834,24 @@ function invSave(kind) {
   if (kind === 'cabin') run.importCabinInventory(authToken, sessionId, items, mode);
   else run.importVenueInventory(authToken, sessionId, items, mode);
 }
+function invClear(kind) {
+  if (!isAdmin() || !authToken) { msg('Sign in as the admin to remove the list.', 'error'); return; }
+  const n = kind === 'cabin' ? cabins.length : venues.length, what = kind === 'cabin' ? 'cabins' : 'public area TV locations';
+  if (!n) { msg('There are no ' + what + ' to remove.', 'success'); return; }
+  const typed = prompt('Remove ALL ' + n + ' ' + what + '?\n\nTheir ticks, remarks and assignments are deleted too. A backup copy of the spreadsheet is saved to Drive first.\n\nType DELETE to confirm:');
+  if (typed === null) return;
+  if (typed.trim().toUpperCase() !== 'DELETE') { msg('Nothing removed: type DELETE to confirm.', 'error'); return; }
+  const b = $(kind === 'cabin' ? 'invCabinClear' : 'invVenueClear'), st = $(kind === 'cabin' ? 'invCabinStatus' : 'invVenueStatus'), label = b.textContent;
+  b.disabled = true; b.textContent = 'Backing up and removing…';
+  google.script.run.withSuccessHandler(r => {
+    b.disabled = false; b.textContent = label;
+    if (!r || !r.success) { st.textContent = (r && r.message) || 'Could not remove the list.'; msg(st.textContent, 'error'); if (r && r.unauthorized) logout(true); return; }
+    st.textContent = r.message; msg(r.message, 'success');
+    if (kind === 'cabin') { cabins = []; lastSignature = ''; } else { venues = []; }
+    load(true); loadHistory();
+  }).withFailureHandler(e => { b.disabled = false; b.textContent = label; st.textContent = 'Remove failed: ' + errText(e); msg(st.textContent, 'error'); })
+    .clearInventory(authToken, sessionId, kind, typed);
+}
 function invTemplate(kind) {
   const csv = kind === 'cabin'
     ? 'Cabin Type,Cabin No,Deck,FZ,TV Count\nPAX,1001,1,1,1\nPAX,1002,1,1,2\nCREW,C2001,2,1,1\nCREW,CREW OFFICE A,2,1,1\n'
@@ -2569,6 +2589,8 @@ function init() {
   $('invVenueSave').addEventListener('click', () => invSave('venue'));
   $('invCabinTemplate').addEventListener('click', () => invTemplate('cabin'));
   $('invVenueTemplate').addEventListener('click', () => invTemplate('venue'));
+  $('invCabinClear').addEventListener('click', () => invClear('cabin'));
+  $('invVenueClear').addEventListener('click', () => invClear('venue'));
   $('clearExcelFilter').addEventListener('click', () => { uploadedCabinKeys = null; uploadedRemarks = new Map(); uploadedAssignments = new Map(); uploadedWhat = new Map(); uploadedBadTechs = 0; if (excelAssignSelection) { selectedAssignRows.clear(); excelAssignSelection = false; $('assignExcelOnlyWrap').hidden = true; if (isAdmin()) renderAssignmentList(); } $('excelCabinFile').value = ''; $('assignExcelFile').value = ''; $('assignExcelStatus').textContent = ''; excelStatus('Excel filter cleared.'); render(); });
   $('saveUploadedRemarks').addEventListener('click', saveUploadedRemarks);
   $('saveUploadedAssignments').addEventListener('click', saveUploadedAssignments);
