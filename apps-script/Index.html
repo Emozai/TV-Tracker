@@ -678,7 +678,7 @@ td.wrapcell{white-space:normal;min-width:220px}
 // Contact form: messages go to JVL - Broadcast by email through Web3Forms.
 // The access key is an alias for the email address, so the address itself never appears on this page.
 (function () {
-  var ACCESS_KEY = 'PASTE_WEB3FORMS_ACCESS_KEY_HERE';
+  var ACCESS_KEY = '794278dd-42c5-4214-956b-aed96ede7ea9';
   var dlg = document.getElementById('jvlContact'), form = document.getElementById('jvlContactForm');
   var status = document.getElementById('jvlStatus'), send = document.getElementById('jvlSend');
   function say(t, ok) { status.textContent = t; status.className = 'jvl-status ' + (ok ? 'ok' : ok === false ? 'err' : ''); }
@@ -695,7 +695,7 @@ td.wrapcell{white-space:normal;min-width:220px}
     if (!name || !msg) { say('Please enter your name and a message.', false); return; }
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { say('That email address does not look right.', false); return; }
     if (form.querySelector('[name=botcheck]').checked) return;
-    if (/PASTE_/.test(ACCESS_KEY)) { say('The contact form is not set up yet.', false); return; }
+    
     if (!navigator.onLine) { say('You are offline. Please try again when you have internet.', false); return; }
     var acct = document.getElementById('activeTech');
     var body = { access_key: ACCESS_KEY, subject: 'TV Tracker message from ' + name, from_name: 'TV Tracker – ' + name, name: name, message: msg,
